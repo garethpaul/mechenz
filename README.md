@@ -3,9 +3,9 @@ mechenz
 
 Requires
 
-# Memcached
-# Beautifulsoup
-# Memchanize
-# SMTPLIB
-# Active GMAIL Account
+> Memcached
+> Beautifulsoup
+> Memchanize
+> SMTPLIB
+> Active GMAIL Account
 
