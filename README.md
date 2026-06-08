@@ -1,3 +1,8 @@
+# mechenz
+
+<!-- README-OVERVIEW-IMAGE -->
+![Project overview](docs/readme-overview.svg)
+
 mechenz
 =======
 
@@ -8,4 +13,3 @@ Beautifulsoup
 Memchanize
 SMTPLIB
 Active GMAIL Account
-
