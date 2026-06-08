@@ -39,7 +39,6 @@ Canonical security policy and reporting:
 
 - [`SECURITY.md`](SECURITY.md)
 
-
 Email credentials and scraped data are sensitive. Credentials must stay in local
 configuration, and scraped content should not be committed unless it is safe as
 a fixture.
