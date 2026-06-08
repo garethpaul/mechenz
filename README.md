@@ -50,7 +50,20 @@ When the required SDK or runtime is unavailable, use static checks and source re
 
 ## Configuration and Secrets
 
-- No required secret or credential file was identified in the repository scan. If you add integrations later, keep secrets out of git.
+- `settings.py` reads runtime configuration from environment variables. Set
+  these before running the app:
+  - `MECHENZ_NAME`
+  - `MECHENZ_TO_EMAIL`
+  - `MECHENZ_FAKE_USER_AGENT`
+  - `MECHENZ_FAKE_REFERER`
+  - `MECHENZ_SITE_URL`
+  - `MECHENZ_FORM_URL`
+  - `MECHENZ_FORM_JSON`
+  - `MECHENZ_SMTP_LOGIN`
+  - `MECHENZ_SMTP_PASSWORD`
+
+`MECHENZ_FORM_JSON` must be a JSON object whose keys are the submitted form
+field names. Keep SMTP credentials and site-specific form values out of git.
 
 ## Security and Privacy Notes
 
