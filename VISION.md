@@ -1,5 +1,8 @@
 ## Mechenz Vision
 
+This document explains the current state and direction of the project.
+Project overview and developer docs: [`README.md`](README.md)
+
 Mechenz is a Python 2-era scraper and email notification script. It uses
 mechanize, BeautifulSoup, memcache, and Gmail SMTP to detect changed scraped
 data and send a notification email.
