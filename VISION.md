@@ -39,7 +39,7 @@ Email credentials and scraped data are sensitive. Credentials must stay in local
 configuration, and scraped content should not be committed unless it is safe as
 a fixture.
 
-## What We Will Not Merge For Now
+## What We Will Not Merge (For Now)
 
 - SMTP passwords or account credentials
 - Scraped private data
