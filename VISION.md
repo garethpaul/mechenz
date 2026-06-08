@@ -45,3 +45,6 @@ a fixture.
 - Scraped private data
 - Live-only tests as the default path
 - Scraping changes without access and rate-limit notes
+
+This list is a roadmap guardrail, not a permanent rule.
+Strong user demand and strong technical rationale can change it.
