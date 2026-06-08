@@ -11,8 +11,9 @@
   <text x="76" y="82" font-size="36" fill="#ffffff" font-weight="700">mechenz</text>
   <text x="76" y="124" font-size="20" fill="#cbd5e1">public sample, documentation, or</text>
 <text x="76" y="156" font-size="20" fill="#cbd5e1">utility project</text>
-  <text x="76" y="206" font-size="24" fill="#111827">mechenz ======= Requires Memcached Beautifulsoup Memchanize SMTPLIB</text>
-<text x="76" y="240" font-size="24" fill="#111827">Active GMAIL Account</text>
+  <text x="76" y="206" font-size="24" fill="#111827">mechenz Overview `garethpaul/mechenz` is a public sample,</text>
+<text x="76" y="240" font-size="24" fill="#111827">documentation, or utility project. No GitHub description is</text>
+<text x="76" y="274" font-size="24" fill="#111827">currently set. This README is based on the checked-in source,</text>
 
   <rect x="76" y="286" width="316" height="276" rx="14" fill="#eff6ff" stroke="#bfdbfe"/>
   <text x="102" y="328" font-size="24" font-weight="700" fill="#1d4ed8">Code Shape</text>
