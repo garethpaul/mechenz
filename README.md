@@ -2,7 +2,7 @@
 
 ## Overview
 
-`garethpaul/mechenz` is a public sample, documentation, or utility project. No GitHub description is currently set.
+`garethpaul/mechenz` is a public sample, documentation, or utility project. The checked-in files describe a public sample, documentation, or utility project with the structure summarized below.
 
 This README is based on the checked-in source, manifests, scripts, and repository metadata on the `master` branch. The project language mix found during review was: Python (2).
 
@@ -61,10 +61,4 @@ When the required SDK or runtime is unavailable, use static checks and source re
 ## Contributing
 
 Keep changes small and tied to the project that is already present in this repository. For code changes, document the toolchain used, avoid committing generated dependency directories or local configuration, and update this README when setup or verification steps change.
-
-## Existing Project Notes
-
-Prior README summary:
-
-> mechenz <!-- README-OVERVIEW-IMAGE --> mechenz ======= Requires Memcached Beautifulsoup Memchanize
 
