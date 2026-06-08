@@ -36,11 +36,13 @@ def main() -> int:
         return 1
 
     for path in ROOT.rglob("*"):
-        if path.is_dir() or ".git" in path.parts or "__pycache__" in path.parts:
+        if ".git" in path.parts:
             continue
         if path.suffix in {".pyc", ".pyo"}:
             print(f"compiled Python artifact found: {path.relative_to(ROOT)}", file=sys.stderr)
             return 1
+        if path.is_dir() or "__pycache__" in path.parts:
+            continue
         if path.suffix not in {".py", ".md", ".txt"}:
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")

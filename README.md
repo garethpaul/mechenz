@@ -7,7 +7,7 @@
 
 `garethpaul/mechenz` is a Python scraper and email notification sample. It polls a form-backed page, caches the latest scraped action list in memcache, and sends an SMTP notification when the data changes.
 
-This README is based on the checked-in source, manifests, scripts, and repository metadata on the `master` branch. The project language mix found during review was: Python (2).
+This README is based on the checked-in source, manifests, scripts, and repository metadata on the `master` branch. The project language mix found during review was: Python.
 
 ## Repository Contents
 
@@ -27,14 +27,14 @@ Additional scan context:
 - Source files: main.py, RoyalMail.py
 - Dependency and build manifests: Makefile, requirements.txt
 - Entry points or build surfaces: `make check`, main.py
-- Test-looking files: tests/test_main.py, tests/test_royalmail.py
+- Test-looking files: tests/test_main.py, tests/test_royal_mail.py, tests/test_royalmail.py
 
 ## Getting Started
 
 ### Prerequisites
 
 - Git
-- Python 3
+- Python 3.10 or newer
 - Optional for live polling: memcached and the packages in `requirements.txt`
 
 ### Setup
@@ -56,9 +56,11 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 python3 -m pip install -r requirements.txt
 ```
 
-- Fill in `settings.py` locally, start memcached, and run:
+- Fill in `settings.py` locally, start memcached, export SMTP credentials, and run:
 
 ```bash
+export SMTP_LOGIN="sender@example.com"
+export SMTP_PASSWORD
 python3 main.py
 ```
 
@@ -73,6 +75,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 
 - Keep `settings.py`, SMTP credentials, target-site secrets, `.env` files, logs, and scraped private data out of git.
 - Use `settings.py.example` only as a placeholder template with fake values.
+- Prefer `SMTP_LOGIN` and `SMTP_PASSWORD` environment variables for SMTP credentials; `settings.py` SMTP fields exist only for local compatibility.
 - Keep `respect_robots = True` unless target-site access rules are documented.
 
 ## Security and Privacy Notes

@@ -3,9 +3,8 @@
 This document explains the current state and direction of the project.
 Project overview and developer docs: [`README.md`](README.md)
 
-Mechenz is a Python 2-era scraper and email notification script. It uses
-mechanize, BeautifulSoup, memcache, and Gmail SMTP to detect changed scraped
-data and send a notification email.
+Mechenz is a Python scraper and email notification script. It uses mechanize,
+memcache, and SMTP to detect changed scraped data and send a notification email.
 
 The repository is useful as a small automation sample for polling a form-backed
 site, caching previous results, and notifying via email.
@@ -15,7 +14,8 @@ scraping behavior, and email delivery safe.
 
 Current baseline: `make check` compiles `main.py` and `RoyalMail.py`, then runs
 offline unit tests for action parsing, email body generation, cache comparison,
-settings validation, notification delivery, and SMTP TLS/login setup.
+settings validation, notification delivery, SMTP environment configuration, and
+SMTP TLS/login setup.
 
 The current focus is:
 
@@ -30,7 +30,6 @@ Priority:
 Next priorities:
 
 - Add fixture-driven tests for additional target response shapes
-- Consider environment-variable support in addition to ignored local settings
 - Add rate-limit and target-site access notes before changing scrape behavior
 
 Contribution rules:

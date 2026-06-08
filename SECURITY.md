@@ -28,7 +28,7 @@ Helpful reports include:
 - Review found authentication, token, or session-related code paths; changes in those areas should receive security-focused review before merge.
 - Dependency manifest detected: requirements.txt. Live-run dependency updates should preserve the offline `make check` path.
 - Run `make check` before changing scraper parsing, SMTP delivery, dependency metadata, or settings documentation.
-- Keep `settings.py`, SMTP credentials, target-site secrets, scraped private data, logs, and `.env` files out of git.
+- Prefer `SMTP_LOGIN` and `SMTP_PASSWORD` environment variables for SMTP credentials. Keep `settings.py`, SMTP credentials, target-site secrets, scraped private data, logs, and `.env` files out of git.
 - Tests should use injected fakes and local fixtures rather than live scraping, memcache, or SMTP.
 
 ## Service and API Notes
@@ -39,7 +39,7 @@ For this project, reports should also describe whether robot handling, target-si
 
 ## Dependency and Supply Chain Security
 
-Dependency updates should come from trusted package managers and should keep lockfiles in sync when lockfiles exist. Do not commit credentials, private keys, tokens, generated secrets, or machine-local configuration. If a vulnerability depends on a compromised package, typosquatting risk, insecure transitive dependency, or unsafe build step, include the package name, affected version, and the path through which it is used.
+Dependency updates should come from trusted package managers and should keep manifests in sync when they exist. Do not commit credentials, private keys, tokens, generated secrets, scraped private data, or machine-local configuration. If a vulnerability depends on a compromised package, typosquatting risk, insecure transitive dependency, or unsafe build step, include the package name, affected version, and the path through which it is used.
 
 ## Safe Research Guidelines
 

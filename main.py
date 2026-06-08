@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from html.parser import HTMLParser
 import importlib
 import os
-from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 import RoyalMail
 
@@ -22,6 +22,7 @@ class ScrapeSettings:
     fake_user_agent: str
     fake_referer: str
     respect_robots: bool = True
+    encoding: str = "utf-8"
 
 
 class ActionParser(HTMLParser):
@@ -66,9 +67,9 @@ class ActionParser(HTMLParser):
                 self._parts = []
 
 
-def extract_actions(html) -> list[str]:
+def extract_actions(html, encoding: str = "utf-8") -> list[str]:
     if isinstance(html, bytes):
-        html = html.decode("utf-8", errors="replace")
+        html = html.decode(encoding, errors="replace")
 
     parser = ActionParser()
     parser.feed(html)
@@ -118,7 +119,7 @@ def fetch_actions(settings: ScrapeSettings, browser_factory=None) -> list[str]:
     response = browser.submit()
     if settings.form_url:
         response = browser.open(settings.form_url)
-    return extract_actions(response.read())
+    return extract_actions(response.read(), encoding=settings.encoding)
 
 
 def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -> ScrapeSettings:
@@ -134,7 +135,10 @@ def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -
     if not isinstance(form, Mapping):
         raise ValueError("settings.form must be a mapping")
 
+    respect_robots = _truthy(getattr(settings_module, "respect_robots", True))
     ignore_robots = _truthy(env.get("MECHENZ_IGNORE_ROBOTS") or getattr(settings_module, "ignore_robots", ""))
+    if ignore_robots:
+        respect_robots = False
 
     return ScrapeSettings(
         name=str(getattr(settings_module, "name")).strip(),
@@ -144,7 +148,8 @@ def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -
         form={str(key): str(value) for key, value in form.items()},
         fake_user_agent=str(getattr(settings_module, "fake_user_agent")).strip(),
         fake_referer=str(getattr(settings_module, "fake_referer")).strip(),
-        respect_robots=not ignore_robots,
+        respect_robots=respect_robots,
+        encoding=str(getattr(settings_module, "encoding", "utf-8")).strip() or "utf-8",
     )
 
 
@@ -152,17 +157,18 @@ def load_settings_module():
     return importlib.import_module("settings")
 
 
-def create_cache(env: Mapping[str, str] = os.environ):
+def create_cache(env: Mapping[str, str] = os.environ, settings_module=None):
     memcache = importlib.import_module("memcache")
-    server = env.get("MEMCACHE_SERVER", "127.0.0.1:11211")
-    return memcache.Client([server], debug=0)
+    server = env.get("MEMCACHE_SERVER")
+    servers = [server] if server else list(getattr(settings_module, "memcache_servers", ["127.0.0.1:11211"]))
+    return memcache.Client(servers, debug=0)
 
 
 def get_data(data, cache=None, settings_module=None):
     module = settings_module or load_settings_module()
     scrape_settings = load_scrape_settings(module)
     mail_settings = RoyalMail.load_mail_settings(settings_module=module)
-    cache = cache or create_cache()
+    cache = cache or create_cache(settings_module=module)
     return notify_if_changed(
         data,
         cache,
@@ -176,7 +182,7 @@ def main():
     settings_module = load_settings_module()
     scrape_settings = load_scrape_settings(settings_module)
     mail_settings = RoyalMail.load_mail_settings(settings_module=settings_module)
-    cache = create_cache()
+    cache = create_cache(settings_module=settings_module)
     actions = fetch_actions(scrape_settings)
     notify_if_changed(
         actions,

@@ -21,8 +21,12 @@ and sends a Gmail SMTP notification when the scraped data changes.
 - Added runtime dependency loading so pure helpers can be imported without
   mechanize, memcache, Gmail, live scraping, or private settings.
 - Added injectable cache, settings, date, mailer, and SMTP seams.
+- Added SMTP environment configuration with ignored local-settings fallback.
+- Set the live scraper to respect robots unless explicitly overridden.
+- Updated cache state only after successful email delivery so send failures can
+  be retried.
 - Added unit tests for change detection, email body formatting, notification
-  delivery arguments, and SMTP TLS/login flow.
+  delivery arguments, SMTP environment configuration, and SMTP TLS/login flow.
 - Added `settings.py.example`, `requirements.txt`, `.gitignore`, and
   `make check`.
 
