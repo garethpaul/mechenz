@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""Static baseline checks for the Mechenz sample."""
+
+from pathlib import Path
+import re
+import sys
+
+
+ROOT = Path(__file__).resolve().parents[1]
+REQUIRED = [
+    ".gitignore",
+    "CHANGES.md",
+    "Makefile",
+    "README.md",
+    "SECURITY.md",
+    "VISION.md",
+    "requirements.txt",
+    "docs/plans/2026-06-08-mechenz-modernization.md",
+    "tests/test_main.py",
+    "tests/test_royal_mail.py",
+]
+SECRET_PATTERNS = [
+    re.compile(r"smtp_password\s*=\s*['\"][^'\"]+['\"]", re.IGNORECASE),
+    re.compile(r"SMTP_PASSWORD\s*=\s*[^ \n]+"),
+]
+
+
+def main() -> int:
+    missing = [path for path in REQUIRED if not (ROOT / path).exists()]
+    if missing:
+        for path in missing:
+            print(f"missing required file: {path}", file=sys.stderr)
+        return 1
+
+    for path in ROOT.rglob("*"):
+        if path.is_dir() or ".git" in path.parts or "__pycache__" in path.parts:
+            continue
+        if path.suffix in {".pyc", ".pyo"}:
+            print(f"compiled Python artifact found: {path.relative_to(ROOT)}", file=sys.stderr)
+            return 1
+        if path.suffix not in {".py", ".md", ".txt"}:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for pattern in SECRET_PATTERNS:
+            if pattern.search(text):
+                print(f"possible committed SMTP secret in {path.relative_to(ROOT)}", file=sys.stderr)
+                return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

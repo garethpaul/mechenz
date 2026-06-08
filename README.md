@@ -5,59 +5,86 @@
 
 ## Overview
 
-`garethpaul/mechenz` is a public sample, documentation, or utility project. The checked-in files describe a public sample, documentation, or utility project with the structure summarized below.
+`garethpaul/mechenz` is a Python scraper and email notification sample. It polls a form-backed page, caches the latest scraped action list in memcache, and sends an SMTP notification when the data changes.
 
 This README is based on the checked-in source, manifests, scripts, and repository metadata on the `master` branch. The project language mix found during review was: Python (2).
 
 ## Repository Contents
 
 - `README.md` - project overview and local usage notes
-- `main.py`
+- `CHANGES.md` - recent maintenance changes
+- `Makefile` - local verification entry point
+- `RoyalMail.py` - SMTP notification helper
+- `main.py` - scraper, parser, cache comparison, and notification flow
+- `requirements.txt` - live-run dependency metadata
+- `settings.py.example` - local settings template without secrets
+- `tests` - offline unit tests for parsing, cache comparison, and SMTP setup
 - `SECURITY.md` - security reporting and disclosure guidance
 - `VISION.md` - project direction and maintenance guardrails
 
 Additional scan context:
 
-- Source directories: no top-level source directories detected
-- Dependency and build manifests: none detected
-- Entry points or build surfaces: main.py
-- Test-looking files: no obvious test files detected
+- Source files: main.py, RoyalMail.py
+- Dependency and build manifests: Makefile, requirements.txt
+- Entry points or build surfaces: `make check`, main.py
+- Test-looking files: tests/test_main.py, tests/test_royalmail.py
 
 ## Getting Started
 
 ### Prerequisites
 
 - Git
+- Python 3
+- Optional for live polling: memcached and the packages in `requirements.txt`
 
 ### Setup
 
 ```bash
 git clone https://github.com/garethpaul/mechenz.git
 cd mechenz
+make check
+cp settings.py.example settings.py
 ```
 
 The setup commands above are derived from repository files. Legacy mobile, Python, or JavaScript samples may require older SDKs or package versions than a modern workstation uses by default.
 
 ## Running or Using the Project
 
-- No single runtime entry point was identified. Start by reading the source files and manifests listed above.
+- Install live-run dependencies when you are ready to poll a real site:
+
+```bash
+python3 -m pip install -r requirements.txt
+```
+
+- Fill in `settings.py` locally, start memcached, and run:
+
+```bash
+python3 main.py
+```
 
 ## Testing and Verification
 
-- No dedicated automated test command was identified from the checked-in files. Verify changes by running the relevant build or manually exercising the sample.
+- `make check` compiles the Python modules and runs `python3 -m unittest discover -s tests`.
+- The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 
 ## Configuration and Secrets
 
-- No required secret or credential file was identified in the repository scan. If you add integrations later, keep secrets out of git.
+- Keep `settings.py`, SMTP credentials, target-site secrets, `.env` files, logs, and scraped private data out of git.
+- Use `settings.py.example` only as a placeholder template with fake values.
+- Keep `respect_robots = True` unless target-site access rules are documented.
 
 ## Security and Privacy Notes
 
 - Review changes touching authentication or token handling; examples from the scan include RoyalMail.py.
+- Review changes that scrape live sites, disable robot handling, store scraped data, or send email.
+- Tests should use fixtures and injected fakes, not live target sites, memcache, or SMTP.
 
 ## Maintenance Notes
 
+- Run `make check` before pushing scraper, parser, mailer, dependency, settings-template, or documentation changes.
+- See `docs/plans/2026-06-08-mechenz-baseline.md` for the current baseline plan.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 

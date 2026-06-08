@@ -13,6 +13,10 @@ site, caching previous results, and notifying via email.
 The goal is to keep the automation understandable while making credentials,
 scraping behavior, and email delivery safe.
 
+Current baseline: `make check` compiles `main.py` and `RoyalMail.py`, then runs
+offline unit tests for action parsing, email body generation, cache comparison,
+settings validation, notification delivery, and SMTP TLS/login setup.
+
 The current focus is:
 
 Priority:
@@ -20,19 +24,20 @@ Priority:
 - Preserve the scrape, cache, compare, and email-notification flow
 - Keep site/form settings and SMTP credentials out of git
 - Avoid ignoring robots or site terms without explicit documentation
+- Keep offline tests independent of live scraping, memcache, Gmail, and local credentials
 - Maintain security policy for the sample
 
 Next priorities:
 
-- Add README setup for local settings and memcache
-- Move credentials into environment or ignored local config
-- Port to supported Python and maintained scraping/email libraries
-- Add tests around parsing, cache comparison, and email body generation
+- Add fixture-driven tests for additional target response shapes
+- Consider environment-variable support in addition to ignored local settings
+- Add rate-limit and target-site access notes before changing scrape behavior
 
 Contribution rules:
 
 - One PR = one focused scraper, cache, mail, or documentation change.
 - Do not commit Gmail credentials, target-site secrets, or scraped private data.
+- Run `make check` before pushing changes.
 - Verify behavior with fixtures before live scraping.
 - Document target-site access assumptions.
 

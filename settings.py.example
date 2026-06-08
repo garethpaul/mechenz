@@ -1,0 +1,18 @@
+name = "example-job"
+to = "alerts@example.com"
+
+site = "https://example.com/form"
+form_url = "https://example.com/form/results"
+form = {
+    "field_name": "field value",
+}
+
+fake_user_agent = "mechenz/1.0"
+fake_referer = site
+respect_robots = True
+encoding = "utf-8"
+
+memcache_servers = ["127.0.0.1:11211"]
+
+smtp_login = "smtp-user@example.com"
+smtp_password = ""

@@ -26,11 +26,16 @@ Helpful reports include:
 
 - This repository appears to be a public sample, documentation, or utility project. The active security scope is the code and documentation on the default branch.
 - Review found authentication, token, or session-related code paths; changes in those areas should receive security-focused review before merge.
-- No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.
+- Dependency manifest detected: requirements.txt. Live-run dependency updates should preserve the offline `make check` path.
+- Run `make check` before changing scraper parsing, SMTP delivery, dependency metadata, or settings documentation.
+- Keep `settings.py`, SMTP credentials, target-site secrets, scraped private data, logs, and `.env` files out of git.
+- Tests should use injected fakes and local fixtures rather than live scraping, memcache, or SMTP.
 
 ## Service and API Notes
 
 For web services, APIs, sockets, or scraping workflows, prioritize reports involving authentication bypass, authorization errors, injection, server-side request forgery, unsafe deserialization, credential leakage, data exposure, or denial-of-service conditions. Use test accounts and minimal proof-of-concept traffic only.
+
+For this project, reports should also describe whether robot handling, target-site terms, cache keys, or outbound email delivery could expose credentials or scraped private data.
 
 ## Dependency and Supply Chain Security
 
