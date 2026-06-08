@@ -11,9 +11,9 @@
   <text x="76" y="82" font-size="36" fill="#ffffff" font-weight="700">mechenz</text>
   <text x="76" y="124" font-size="20" fill="#cbd5e1">public sample, documentation, or</text>
 <text x="76" y="156" font-size="20" fill="#cbd5e1">utility project</text>
-  <text x="76" y="206" font-size="24" fill="#111827">mechenz Overview `garethpaul/mechenz` is a public sample,</text>
-<text x="76" y="240" font-size="24" fill="#111827">documentation, or utility project. The checked-in files describe a</text>
-<text x="76" y="274" font-size="24" fill="#111827">public sample, documentation, or utility project with the structure</text>
+  <text x="76" y="206" font-size="24" fill="#111827">mechenz &lt;!-- README-OVERVIEW-IMAGE --&gt; Overview `garethpaul/mechenz`</text>
+<text x="76" y="240" font-size="24" fill="#111827">is a public sample, documentation, or utility project. The checked-</text>
+<text x="76" y="274" font-size="24" fill="#111827">in files describe a public sample, documentation, or utility project</text>
 
   <rect x="76" y="286" width="316" height="276" rx="14" fill="#eff6ff" stroke="#bfdbfe"/>
   <text x="102" y="328" font-size="24" font-weight="700" fill="#1d4ed8">Code Shape</text>
