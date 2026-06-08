@@ -15,9 +15,12 @@ REQUIRED = [
     "SECURITY.md",
     "VISION.md",
     "requirements.txt",
+    "settings.py.example",
+    "docs/plans/2026-06-08-mechenz-baseline.md",
     "docs/plans/2026-06-08-mechenz-modernization.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
+    "tests/test_royalmail.py",
 ]
 SECRET_PATTERNS = [
     re.compile(r"smtp_password\s*=\s*['\"][^'\"]+['\"]", re.IGNORECASE),
