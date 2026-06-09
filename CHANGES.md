@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-09
+
+- Added SMTP recipient normalization so blank recipient lists fail before an
+  SMTP connection is opened.
+
 ## 2026-06-08
 
 - Ported the scraper and SMTP helper to Python 3-compatible imports and syntax.

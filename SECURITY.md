@@ -31,6 +31,7 @@ Helpful reports include:
 - Prefer `SMTP_LOGIN` and `SMTP_PASSWORD` environment variables for SMTP credentials. Keep `settings.py`, SMTP credentials, target-site secrets, scraped private data, logs, and `.env` files out of git.
 - Scrape settings validation should reject blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
 - SMTP numeric setting validation should reject invalid port and timeout values without echoing raw configuration values.
+- SMTP recipient normalization should strip recipient addresses and reject all-blank recipient lists before opening outbound SMTP connections.
 - Tests should use injected fakes and local fixtures rather than live scraping, memcache, or SMTP.
 
 ## Service and API Notes

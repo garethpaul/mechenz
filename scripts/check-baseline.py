@@ -21,6 +21,7 @@ REQUIRED = [
     "docs/plans/2026-06-08-python3-scraper-baseline.md",
     "docs/plans/2026-06-08-scrape-settings-validation.md",
     "docs/plans/2026-06-09-mail-settings-validation.md",
+    "docs/plans/2026-06-09-mail-recipient-normalization.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -64,6 +65,7 @@ def main() -> int:
     changes = (ROOT / "CHANGES.md").read_text(encoding="utf-8")
     settings_plan = (ROOT / "docs/plans/2026-06-08-scrape-settings-validation.md").read_text(encoding="utf-8")
     mail_plan = (ROOT / "docs/plans/2026-06-09-mail-settings-validation.md").read_text(encoding="utf-8")
+    recipient_plan = (ROOT / "docs/plans/2026-06-09-mail-recipient-normalization.md").read_text(encoding="utf-8")
 
     checks = [
         ("empty required settings" in main_source and "required_values" in main_source,
@@ -90,6 +92,19 @@ def main() -> int:
          "CHANGES must record SMTP numeric setting validation"),
         ("status: completed" in mail_plan,
          "SMTP numeric setting validation plan must be marked completed"),
+        ("str(address).strip()" in mail_source and "if not recipients" in mail_source,
+         "RoyalMail must normalize and reject blank SMTP recipients"),
+        ("test_send_mail_normalizes_recipients" in test_mail
+         and "test_send_mail_rejects_blank_recipients" in test_mail,
+         "tests must cover SMTP recipient normalization"),
+        ("smtp recipient normalization" in readme.lower()
+         and "smtp recipient normalization" in vision.lower()
+         and "smtp recipient normalization" in security.lower(),
+         "docs must mention SMTP recipient normalization"),
+        ("smtp recipient normalization" in changes.lower(),
+         "CHANGES must record SMTP recipient normalization"),
+        ("status: completed" in recipient_plan,
+         "SMTP recipient normalization plan must be marked completed"),
     ]
     for passed, message in checks:
         if not passed:

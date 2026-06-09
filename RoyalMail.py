@@ -63,7 +63,11 @@ def send_mail(
     smtp_factory: Callable[..., smtplib.SMTP] = smtplib.SMTP,
 ) -> None:
     settings = mail_settings or load_mail_settings()
-    recipients = [address for address in to if address]
+    recipients = [
+        str(address).strip()
+        for address in to
+        if address is not None and str(address).strip()
+    ]
     if not recipients:
         raise ValueError("at least one recipient is required")
 

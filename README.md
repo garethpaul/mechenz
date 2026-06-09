@@ -77,6 +77,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Use `settings.py.example` only as a placeholder template with fake values.
 - Scrape settings validation rejects blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
 - SMTP numeric setting validation rejects invalid port and timeout values without echoing raw configuration values.
+- SMTP recipient normalization strips recipient addresses and rejects all-blank recipient lists before opening SMTP connections.
 - Prefer `SMTP_LOGIN` and `SMTP_PASSWORD` environment variables for SMTP credentials; `settings.py` SMTP fields exist only for local compatibility.
 - Keep `respect_robots = True` unless target-site access rules are documented.
 

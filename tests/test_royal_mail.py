@@ -122,6 +122,46 @@ class RoyalMailTests(unittest.TestCase):
         self.assertEqual(sendmail_call[2], ["to@example.com"])
         self.assertIn("Subject", sendmail_call[3])
 
+    def test_send_mail_normalizes_recipients(self):
+        settings = RoyalMail.MailSettings(
+            login="sender@example.com",
+            password="secret",
+            host="smtp.example.com",
+            port=2525,
+            timeout=5,
+        )
+
+        RoyalMail.send_mail(
+            [" to@example.com ", "", " ", None],
+            "Subject",
+            "Body",
+            mail_settings=settings,
+            smtp_factory=FakeSMTP,
+        )
+
+        sendmail_call = [call for call in FakeSMTP.instances[0].calls if call[0] == "sendmail"][0]
+        self.assertEqual(sendmail_call[2], ["to@example.com"])
+
+    def test_send_mail_rejects_blank_recipients(self):
+        settings = RoyalMail.MailSettings(
+            login="sender@example.com",
+            password="secret",
+            host="smtp.example.com",
+            port=2525,
+            timeout=5,
+        )
+
+        with self.assertRaisesRegex(ValueError, "at least one recipient"):
+            RoyalMail.send_mail(
+                [" ", "", None],
+                "Subject",
+                "Body",
+                mail_settings=settings,
+                smtp_factory=FakeSMTP,
+            )
+
+        self.assertEqual(FakeSMTP.instances, [])
+
 
 if __name__ == "__main__":
     unittest.main()
