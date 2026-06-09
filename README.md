@@ -76,6 +76,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Keep `settings.py`, SMTP credentials, target-site secrets, `.env` files, logs, and scraped private data out of git.
 - Use `settings.py.example` only as a placeholder template with fake values.
 - Scrape settings validation rejects blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
+- Scrape URL validation rejects non-HTTP(S) target and result URLs before a live run.
 - SMTP numeric setting validation rejects invalid port and timeout values without echoing raw configuration values.
 - SMTP recipient normalization strips recipient addresses and rejects all-blank recipient lists before opening SMTP connections.
 - Prefer `SMTP_LOGIN` and `SMTP_PASSWORD` environment variables for SMTP credentials; `settings.py` SMTP fields exist only for local compatibility.
@@ -86,6 +87,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Review changes touching authentication or token handling; examples from the scan include RoyalMail.py.
 - Review changes that scrape live sites, disable robot handling, store scraped data, or send email.
 - Keep scrape settings validation in place so blank target or recipient settings fail before live scraping or email delivery.
+- Keep scrape URL validation in place so malformed or non-HTTP(S) targets fail before mechanize opens them.
 - Tests should use fixtures and injected fakes, not live target sites, memcache, or SMTP.
 
 ## Maintenance Notes
@@ -93,6 +95,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Run `make check` before pushing scraper, parser, mailer, dependency, settings-template, or documentation changes.
 - See `docs/plans/2026-06-08-mechenz-baseline.md` for the current baseline plan.
 - See `docs/plans/2026-06-09-mail-settings-validation.md` for the SMTP numeric setting validation guard.
+- See `docs/plans/2026-06-09-scrape-url-validation.md` for the scrape URL validation guard.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 

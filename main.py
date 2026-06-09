@@ -8,6 +8,7 @@ from datetime import date
 from html.parser import HTMLParser
 import importlib
 import os
+from urllib.parse import urlparse
 
 import RoyalMail
 
@@ -143,6 +144,15 @@ def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -
     if empty:
         raise ValueError("empty required settings: " + ", ".join(empty))
 
+    form_url = str(getattr(settings_module, "form_url")).strip()
+    invalid_urls = []
+    if not _valid_http_url(required_values["site"]):
+        invalid_urls.append("site")
+    if form_url and not _valid_http_url(form_url):
+        invalid_urls.append("form_url")
+    if invalid_urls:
+        raise ValueError("invalid scrape settings: " + ", ".join(invalid_urls))
+
     respect_robots = _truthy(getattr(settings_module, "respect_robots", True))
     ignore_robots = _truthy(env.get("MECHENZ_IGNORE_ROBOTS") or getattr(settings_module, "ignore_robots", ""))
     if ignore_robots:
@@ -152,7 +162,7 @@ def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -
         name=required_values["name"],
         recipient=required_values["to"],
         site=required_values["site"],
-        form_url=str(getattr(settings_module, "form_url")).strip(),
+        form_url=form_url,
         form={str(key): str(value) for key, value in form.items()},
         fake_user_agent=required_values["fake_user_agent"],
         fake_referer=required_values["fake_referer"],
@@ -203,6 +213,11 @@ def main():
 
 def _truthy(value) -> bool:
     return str(value).strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
+
+def _valid_http_url(value: str) -> bool:
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
 
 if __name__ == "__main__":

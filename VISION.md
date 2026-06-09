@@ -25,6 +25,7 @@ Priority:
 - Preserve the scrape, cache, compare, and email-notification flow
 - Keep site/form settings and SMTP credentials out of git
 - Keep scrape settings validation strict enough to reject blank live-run targets
+- Keep scrape URL validation strict enough to reject non-HTTP(S) live-run targets
 - Keep SMTP numeric setting validation from leaking raw invalid configuration values
 - Keep SMTP recipient normalization before opening outbound SMTP connections
 - Avoid ignoring robots or site terms without explicit documentation

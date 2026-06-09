@@ -22,6 +22,7 @@ REQUIRED = [
     "docs/plans/2026-06-08-scrape-settings-validation.md",
     "docs/plans/2026-06-09-mail-settings-validation.md",
     "docs/plans/2026-06-09-mail-recipient-normalization.md",
+    "docs/plans/2026-06-09-scrape-url-validation.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -66,6 +67,7 @@ def main() -> int:
     settings_plan = (ROOT / "docs/plans/2026-06-08-scrape-settings-validation.md").read_text(encoding="utf-8")
     mail_plan = (ROOT / "docs/plans/2026-06-09-mail-settings-validation.md").read_text(encoding="utf-8")
     recipient_plan = (ROOT / "docs/plans/2026-06-09-mail-recipient-normalization.md").read_text(encoding="utf-8")
+    url_plan = (ROOT / "docs/plans/2026-06-09-scrape-url-validation.md").read_text(encoding="utf-8")
 
     checks = [
         ("empty required settings" in main_source and "required_values" in main_source,
@@ -80,6 +82,20 @@ def main() -> int:
          "CHANGES must record scrape settings validation"),
         ("status: completed" in settings_plan,
          "scrape settings validation plan must be marked completed"),
+        ("_valid_http_url" in main_source and "invalid scrape settings" in main_source,
+         "load_scrape_settings must validate scrape URL schemes"),
+        ("test_load_scrape_settings_rejects_invalid_scrape_urls" in test_main
+         and "file:///tmp/private.html" in test_main
+         and "not-a-url" in test_main,
+         "tests must cover invalid scrape URL validation"),
+        ("scrape url validation" in readme.lower()
+         and "scrape url validation" in vision.lower()
+         and "scrape url validation" in security.lower(),
+         "docs must mention scrape URL validation"),
+        ("scrape url validation" in changes.lower(),
+         "CHANGES must record scrape URL validation"),
+        ("status: completed" in url_plan,
+         "scrape URL validation plan must be marked completed"),
         ("_parse_int_setting" in mail_source and "_parse_float_setting" in mail_source,
          "RoyalMail must sanitize numeric SMTP setting parsing"),
         ("invalid SMTP_PORT" in test_mail and "invalid SMTP_TIMEOUT" in test_mail,

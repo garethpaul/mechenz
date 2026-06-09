@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Added scrape URL validation so malformed or non-HTTP(S) target URLs fail
+  before live scraping.
 - Added SMTP recipient normalization so blank recipient lists fail before an
   SMTP connection is opened.
 

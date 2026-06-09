@@ -93,6 +93,26 @@ class MainTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "empty required settings: name, to, fake_referer"):
             main.load_scrape_settings(module)
 
+    def test_load_scrape_settings_rejects_invalid_scrape_urls(self):
+        module = SimpleNamespace(
+            name="sample",
+            to="to@example.com",
+            site="file:///tmp/private.html",
+            form_url="not-a-url",
+            form={"q": "value"},
+            fake_user_agent="Mechenz",
+            fake_referer="https://example.com",
+        )
+
+        with self.assertRaisesRegex(ValueError, "invalid scrape settings: site, form_url"):
+            main.load_scrape_settings(module)
+
+        try:
+            main.load_scrape_settings(module)
+        except ValueError as error:
+            self.assertNotIn("file:///tmp/private.html", str(error))
+            self.assertNotIn("not-a-url", str(error))
+
     def test_load_scrape_settings_can_explicitly_ignore_robots(self):
         module = SimpleNamespace(
             name="sample",
