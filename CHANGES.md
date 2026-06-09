@@ -8,6 +8,8 @@
   before live scraping.
 - Added SMTP recipient normalization so blank recipient lists fail before an
   SMTP connection is opened.
+- Added SMTP header validation so CRLF in sender, recipient, or subject values
+  fails before an SMTP connection is opened.
 - Added robot setting validation so ambiguous `respect_robots` or
   `MECHENZ_IGNORE_ROBOTS` values fail closed without echoing raw values.
 

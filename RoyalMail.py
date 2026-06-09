@@ -70,6 +70,10 @@ def send_mail(
     ]
     if not recipients:
         raise ValueError("at least one recipient is required")
+    _validate_header_value("SMTP_LOGIN", settings.login)
+    _validate_header_value("SMTP_SUBJECT", subject)
+    for recipient in recipients:
+        _validate_header_value("SMTP_RECIPIENT", recipient)
 
     message = MIMEMultipart()
     message["From"] = settings.login
@@ -144,6 +148,11 @@ def _parse_float_setting(name: str, value: str) -> float:
     if parsed <= 0:
         raise ValueError(f"invalid {name}")
     return parsed
+
+
+def _validate_header_value(name: str, value: str) -> None:
+    if "\r" in value or "\n" in value:
+        raise ValueError(f"invalid {name}")
 
 
 if __name__ == "__main__":

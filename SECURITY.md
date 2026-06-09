@@ -33,6 +33,8 @@ Helpful reports include:
 - Scrape URL validation should reject malformed or non-HTTP(S) target URLs before mechanize opens them.
 - SMTP numeric setting validation should reject invalid port and timeout values without echoing raw configuration values.
 - SMTP recipient normalization should strip recipient addresses and reject all-blank recipient lists before opening outbound SMTP connections.
+- SMTP header validation should reject CRLF in sender, recipient, and subject
+  values before opening outbound SMTP connections.
 - Robot setting validation should reject ambiguous `respect_robots` and `MECHENZ_IGNORE_ROBOTS` values without echoing raw configuration values.
 - Tests should use injected fakes and local fixtures rather than live scraping, memcache, or SMTP.
 

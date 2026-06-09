@@ -162,6 +162,51 @@ class RoyalMailTests(unittest.TestCase):
 
         self.assertEqual(FakeSMTP.instances, [])
 
+    def test_send_mail_rejects_header_newlines_before_smtp(self):
+        settings = RoyalMail.MailSettings(
+            login="sender@example.com",
+            password="secret",
+            host="smtp.example.com",
+            port=2525,
+            timeout=5,
+        )
+
+        with self.assertRaisesRegex(ValueError, "invalid SMTP_SUBJECT"):
+            RoyalMail.send_mail(
+                ["to@example.com"],
+                "Subject\nBcc: other@example.com",
+                "Body",
+                mail_settings=settings,
+                smtp_factory=FakeSMTP,
+            )
+
+        with self.assertRaisesRegex(ValueError, "invalid SMTP_RECIPIENT"):
+            RoyalMail.send_mail(
+                ["to@example.com\nBcc: other@example.com"],
+                "Subject",
+                "Body",
+                mail_settings=settings,
+                smtp_factory=FakeSMTP,
+            )
+
+        bad_sender_settings = RoyalMail.MailSettings(
+            login="sender@example.com\nBcc: other@example.com",
+            password="secret",
+            host="smtp.example.com",
+            port=2525,
+            timeout=5,
+        )
+        with self.assertRaisesRegex(ValueError, "invalid SMTP_LOGIN"):
+            RoyalMail.send_mail(
+                ["to@example.com"],
+                "Subject",
+                "Body",
+                mail_settings=bad_sender_settings,
+                smtp_factory=FakeSMTP,
+            )
+
+        self.assertEqual(FakeSMTP.instances, [])
+
 
 if __name__ == "__main__":
     unittest.main()

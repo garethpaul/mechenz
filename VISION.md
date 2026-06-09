@@ -17,7 +17,7 @@ cover the static baseline, offline unit tests, Python compilation, generated
 artifact cleanup, action parsing, email body generation, cache comparison,
 settings validation, scrape settings validation, notification delivery, SMTP
 environment configuration, SMTP numeric setting validation, and SMTP TLS/login
-setup.
+setup, and SMTP header validation.
 
 The current focus is:
 
@@ -29,6 +29,7 @@ Priority:
 - Keep scrape URL validation strict enough to reject non-HTTP(S) live-run targets
 - Keep SMTP numeric setting validation from leaking raw invalid configuration values
 - Keep SMTP recipient normalization before opening outbound SMTP connections
+- Keep SMTP header validation before opening outbound SMTP connections
 - Keep robot setting validation strict enough that typos fail closed
 - Avoid ignoring robots or site terms without explicit documentation
 - Keep offline tests independent of live scraping, memcache, Gmail, and local credentials

@@ -25,6 +25,7 @@ REQUIRED = [
     "docs/plans/2026-06-09-make-gate-targets.md",
     "docs/plans/2026-06-09-robot-setting-validation.md",
     "docs/plans/2026-06-09-scrape-url-validation.md",
+    "docs/plans/2026-06-09-smtp-header-validation.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -73,6 +74,7 @@ def main() -> int:
     make_gates_plan = (ROOT / "docs/plans/2026-06-09-make-gate-targets.md").read_text(encoding="utf-8")
     robot_plan = (ROOT / "docs/plans/2026-06-09-robot-setting-validation.md").read_text(encoding="utf-8")
     url_plan = (ROOT / "docs/plans/2026-06-09-scrape-url-validation.md").read_text(encoding="utf-8")
+    header_plan = (ROOT / "docs/plans/2026-06-09-smtp-header-validation.md").read_text(encoding="utf-8")
 
     checks = [
         (".PHONY: build check clean compile fmt lint static-check test" in makefile
@@ -151,6 +153,25 @@ def main() -> int:
          "CHANGES must record robot setting validation"),
         ("status: completed" in robot_plan,
          "robot setting validation plan must be marked completed"),
+        ("_validate_header_value" in mail_source
+         and '_validate_header_value("SMTP_LOGIN", settings.login)' in mail_source
+         and '_validate_header_value("SMTP_SUBJECT", subject)' in mail_source
+         and '_validate_header_value("SMTP_RECIPIENT", recipient)' in mail_source
+         and 'raise ValueError(f"invalid {name}")' in mail_source,
+         "RoyalMail must reject CRLF in SMTP header values"),
+        ("test_send_mail_rejects_header_newlines_before_smtp" in test_mail
+         and "invalid SMTP_SUBJECT" in test_mail
+         and "invalid SMTP_RECIPIENT" in test_mail
+         and "invalid SMTP_LOGIN" in test_mail,
+         "tests must cover SMTP header validation"),
+        ("smtp header validation" in readme.lower()
+         and "smtp header validation" in vision.lower()
+         and "smtp header validation" in security.lower(),
+         "docs must mention SMTP header validation"),
+        ("smtp header validation" in changes.lower(),
+         "CHANGES must record SMTP header validation"),
+        ("status: completed" in header_plan,
+         "SMTP header validation plan must be marked completed"),
     ]
     for passed, message in checks:
         if not passed:
