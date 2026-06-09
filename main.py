@@ -123,11 +123,8 @@ def fetch_actions(settings: ScrapeSettings, browser_factory=None) -> list[str]:
 
 
 def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -> ScrapeSettings:
-    missing = [
-        name
-        for name in ("name", "to", "site", "form_url", "form", "fake_user_agent", "fake_referer")
-        if not hasattr(settings_module, name)
-    ]
+    required_names = ("name", "to", "site", "form_url", "form", "fake_user_agent", "fake_referer")
+    missing = [name for name in required_names if not hasattr(settings_module, name)]
     if missing:
         raise ValueError("missing required settings: " + ", ".join(missing))
 
@@ -135,19 +132,30 @@ def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -
     if not isinstance(form, Mapping):
         raise ValueError("settings.form must be a mapping")
 
+    required_values = {
+        "name": str(getattr(settings_module, "name")).strip(),
+        "to": str(getattr(settings_module, "to")).strip(),
+        "site": str(getattr(settings_module, "site")).strip(),
+        "fake_user_agent": str(getattr(settings_module, "fake_user_agent")).strip(),
+        "fake_referer": str(getattr(settings_module, "fake_referer")).strip(),
+    }
+    empty = [name for name, value in required_values.items() if not value]
+    if empty:
+        raise ValueError("empty required settings: " + ", ".join(empty))
+
     respect_robots = _truthy(getattr(settings_module, "respect_robots", True))
     ignore_robots = _truthy(env.get("MECHENZ_IGNORE_ROBOTS") or getattr(settings_module, "ignore_robots", ""))
     if ignore_robots:
         respect_robots = False
 
     return ScrapeSettings(
-        name=str(getattr(settings_module, "name")).strip(),
-        recipient=str(getattr(settings_module, "to")).strip(),
-        site=str(getattr(settings_module, "site")).strip(),
+        name=required_values["name"],
+        recipient=required_values["to"],
+        site=required_values["site"],
         form_url=str(getattr(settings_module, "form_url")).strip(),
         form={str(key): str(value) for key, value in form.items()},
-        fake_user_agent=str(getattr(settings_module, "fake_user_agent")).strip(),
-        fake_referer=str(getattr(settings_module, "fake_referer")).strip(),
+        fake_user_agent=required_values["fake_user_agent"],
+        fake_referer=required_values["fake_referer"],
         respect_robots=respect_robots,
         encoding=str(getattr(settings_module, "encoding", "utf-8")).strip() or "utf-8",
     )

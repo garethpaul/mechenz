@@ -18,6 +18,8 @@ REQUIRED = [
     "settings.py.example",
     "docs/plans/2026-06-08-mechenz-baseline.md",
     "docs/plans/2026-06-08-mechenz-modernization.md",
+    "docs/plans/2026-06-08-python3-scraper-baseline.md",
+    "docs/plans/2026-06-08-scrape-settings-validation.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -50,6 +52,33 @@ def main() -> int:
             if pattern.search(text):
                 print(f"possible committed SMTP secret in {path.relative_to(ROOT)}", file=sys.stderr)
                 return 1
+
+    main_source = (ROOT / "main.py").read_text(encoding="utf-8")
+    test_main = (ROOT / "tests/test_main.py").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    vision = (ROOT / "VISION.md").read_text(encoding="utf-8")
+    security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
+    changes = (ROOT / "CHANGES.md").read_text(encoding="utf-8")
+    settings_plan = (ROOT / "docs/plans/2026-06-08-scrape-settings-validation.md").read_text(encoding="utf-8")
+
+    checks = [
+        ("empty required settings" in main_source and "required_values" in main_source,
+         "load_scrape_settings must reject blank required settings"),
+        ("test_load_scrape_settings_rejects_blank_required_values" in test_main,
+         "tests must cover blank scrape settings validation"),
+        ("scrape settings validation" in readme.lower()
+         and "scrape settings validation" in vision.lower()
+         and "scrape settings validation" in security.lower(),
+         "docs must mention scrape settings validation"),
+        ("scrape settings validation" in changes.lower(),
+         "CHANGES must record scrape settings validation"),
+        ("status: completed" in settings_plan,
+         "scrape settings validation plan must be marked completed"),
+    ]
+    for passed, message in checks:
+        if not passed:
+            print(message, file=sys.stderr)
+            return 1
 
     return 0
 

@@ -5,5 +5,6 @@
 - Ported the scraper and SMTP helper to Python 3-compatible imports and syntax.
 - Added runtime-only imports for optional live dependencies so tests can run without mechanize, memcache, or live SMTP.
 - Added environment-backed SMTP configuration with an ignored `settings.py` compatibility fallback.
+- Added scrape settings validation for blank live-run target, recipient, user-agent, and referer values.
 - Added parser, cache, notification, and SMTP unit tests using the Python standard library.
 - Added dependency metadata and `make check` verification.

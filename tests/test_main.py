@@ -79,6 +79,20 @@ class MainTests(unittest.TestCase):
         self.assertTrue(settings.respect_robots)
         self.assertEqual(settings.form, {"q": "value"})
 
+    def test_load_scrape_settings_rejects_blank_required_values(self):
+        module = SimpleNamespace(
+            name=" ",
+            to="",
+            site="https://example.com",
+            form_url="",
+            form={"q": "value"},
+            fake_user_agent="Mechenz",
+            fake_referer=" ",
+        )
+
+        with self.assertRaisesRegex(ValueError, "empty required settings: name, to, fake_referer"):
+            main.load_scrape_settings(module)
+
     def test_load_scrape_settings_can_explicitly_ignore_robots(self):
         module = SimpleNamespace(
             name="sample",

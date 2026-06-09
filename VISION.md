@@ -14,8 +14,8 @@ scraping behavior, and email delivery safe.
 
 Current baseline: `make check` compiles `main.py` and `RoyalMail.py`, then runs
 offline unit tests for action parsing, email body generation, cache comparison,
-settings validation, notification delivery, SMTP environment configuration, and
-SMTP TLS/login setup.
+settings validation, scrape settings validation, notification delivery, SMTP
+environment configuration, and SMTP TLS/login setup.
 
 The current focus is:
 
@@ -23,6 +23,7 @@ Priority:
 
 - Preserve the scrape, cache, compare, and email-notification flow
 - Keep site/form settings and SMTP credentials out of git
+- Keep scrape settings validation strict enough to reject blank live-run targets
 - Avoid ignoring robots or site terms without explicit documentation
 - Keep offline tests independent of live scraping, memcache, Gmail, and local credentials
 - Maintain security policy for the sample
@@ -39,6 +40,7 @@ Contribution rules:
 - Run `make check` before pushing changes.
 - Verify behavior with fixtures before live scraping.
 - Document target-site access assumptions.
+- Preserve scrape settings validation when changing live-run configuration.
 
 ## Security And Privacy
 
