@@ -28,6 +28,7 @@ Priority:
 - Keep scrape URL validation strict enough to reject non-HTTP(S) live-run targets
 - Keep SMTP numeric setting validation from leaking raw invalid configuration values
 - Keep SMTP recipient normalization before opening outbound SMTP connections
+- Keep robot setting validation strict enough that typos fail closed
 - Avoid ignoring robots or site terms without explicit documentation
 - Keep offline tests independent of live scraping, memcache, Gmail, and local credentials
 - Maintain security policy for the sample

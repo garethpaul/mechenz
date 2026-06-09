@@ -153,8 +153,11 @@ def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -
     if invalid_urls:
         raise ValueError("invalid scrape settings: " + ", ".join(invalid_urls))
 
-    respect_robots = _truthy(getattr(settings_module, "respect_robots", True))
-    ignore_robots = _truthy(env.get("MECHENZ_IGNORE_ROBOTS") or getattr(settings_module, "ignore_robots", ""))
+    respect_robots = _parse_bool_setting("respect_robots", getattr(settings_module, "respect_robots", True), default=True)
+    ignore_robots_value = env.get("MECHENZ_IGNORE_ROBOTS")
+    if ignore_robots_value is None or not str(ignore_robots_value).strip():
+        ignore_robots_value = getattr(settings_module, "ignore_robots", "")
+    ignore_robots = _parse_bool_setting("MECHENZ_IGNORE_ROBOTS", ignore_robots_value, default=False)
     if ignore_robots:
         respect_robots = False
 
@@ -211,8 +214,20 @@ def main():
     )
 
 
-def _truthy(value) -> bool:
-    return str(value).strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+def _parse_bool_setting(name: str, value, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+
+    normalized = str(value).strip().lower()
+    if not normalized:
+        return default
+    if normalized in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    raise ValueError(f"invalid {name}")
 
 
 def _valid_http_url(value: str) -> bool:

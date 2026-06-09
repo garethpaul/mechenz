@@ -6,6 +6,8 @@
   before live scraping.
 - Added SMTP recipient normalization so blank recipient lists fail before an
   SMTP connection is opened.
+- Added robot setting validation so ambiguous `respect_robots` or
+  `MECHENZ_IGNORE_ROBOTS` values fail closed without echoing raw values.
 
 ## 2026-06-08
 

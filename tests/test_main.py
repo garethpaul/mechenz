@@ -128,6 +128,45 @@ class MainTests(unittest.TestCase):
 
         self.assertFalse(settings.respect_robots)
 
+    def test_load_scrape_settings_rejects_ambiguous_respect_robots_value(self):
+        module = SimpleNamespace(
+            name="sample",
+            to="to@example.com",
+            site="https://example.com",
+            form_url="https://example.com/results",
+            form={"q": "value"},
+            fake_user_agent="Mechenz",
+            fake_referer="https://example.com",
+            respect_robots="treu",
+        )
+
+        with self.assertRaisesRegex(ValueError, "invalid respect_robots"):
+            main.load_scrape_settings(module)
+
+        try:
+            main.load_scrape_settings(module)
+        except ValueError as error:
+            self.assertNotIn("treu", str(error))
+
+    def test_load_scrape_settings_rejects_ambiguous_ignore_robots_value(self):
+        module = SimpleNamespace(
+            name="sample",
+            to="to@example.com",
+            site="https://example.com",
+            form_url="https://example.com/results",
+            form={"q": "value"},
+            fake_user_agent="Mechenz",
+            fake_referer="https://example.com",
+        )
+
+        with self.assertRaisesRegex(ValueError, "invalid MECHENZ_IGNORE_ROBOTS"):
+            main.load_scrape_settings(module, {"MECHENZ_IGNORE_ROBOTS": "treu"})
+
+        try:
+            main.load_scrape_settings(module, {"MECHENZ_IGNORE_ROBOTS": "treu"})
+        except ValueError as error:
+            self.assertNotIn("treu", str(error))
+
 
 if __name__ == "__main__":
     unittest.main()

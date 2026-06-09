@@ -22,6 +22,7 @@ REQUIRED = [
     "docs/plans/2026-06-08-scrape-settings-validation.md",
     "docs/plans/2026-06-09-mail-settings-validation.md",
     "docs/plans/2026-06-09-mail-recipient-normalization.md",
+    "docs/plans/2026-06-09-robot-setting-validation.md",
     "docs/plans/2026-06-09-scrape-url-validation.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
@@ -67,6 +68,7 @@ def main() -> int:
     settings_plan = (ROOT / "docs/plans/2026-06-08-scrape-settings-validation.md").read_text(encoding="utf-8")
     mail_plan = (ROOT / "docs/plans/2026-06-09-mail-settings-validation.md").read_text(encoding="utf-8")
     recipient_plan = (ROOT / "docs/plans/2026-06-09-mail-recipient-normalization.md").read_text(encoding="utf-8")
+    robot_plan = (ROOT / "docs/plans/2026-06-09-robot-setting-validation.md").read_text(encoding="utf-8")
     url_plan = (ROOT / "docs/plans/2026-06-09-scrape-url-validation.md").read_text(encoding="utf-8")
 
     checks = [
@@ -121,6 +123,18 @@ def main() -> int:
          "CHANGES must record SMTP recipient normalization"),
         ("status: completed" in recipient_plan,
          "SMTP recipient normalization plan must be marked completed"),
+        ("_parse_bool_setting" in main_source
+         and "invalid respect_robots" in test_main
+         and "invalid MECHENZ_IGNORE_ROBOTS" in test_main,
+         "tests must cover robot setting validation"),
+        ("robot setting validation" in readme.lower()
+         and "robot setting validation" in vision.lower()
+         and "robot setting validation" in security.lower(),
+         "docs must mention robot setting validation"),
+        ("robot setting validation" in changes.lower(),
+         "CHANGES must record robot setting validation"),
+        ("status: completed" in robot_plan,
+         "robot setting validation plan must be marked completed"),
     ]
     for passed, message in checks:
         if not passed:
