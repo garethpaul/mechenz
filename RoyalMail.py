@@ -37,8 +37,14 @@ def load_mail_settings(
         raise ValueError("missing required SMTP configuration: " + ", ".join(missing))
 
     host = _first_value(env.get("SMTP_HOST"), _module_value(settings_module, "smtp_host"), "smtp.gmail.com")
-    port = int(_first_value(env.get("SMTP_PORT"), _module_value(settings_module, "smtp_port"), "587"))
-    timeout = float(_first_value(env.get("SMTP_TIMEOUT"), _module_value(settings_module, "smtp_timeout"), "10"))
+    port = _parse_int_setting(
+        "SMTP_PORT",
+        _first_value(env.get("SMTP_PORT"), _module_value(settings_module, "smtp_port"), "587"),
+    )
+    timeout = _parse_float_setting(
+        "SMTP_TIMEOUT",
+        _first_value(env.get("SMTP_TIMEOUT"), _module_value(settings_module, "smtp_timeout"), "10"),
+    )
 
     return MailSettings(
         login=login,
@@ -114,6 +120,26 @@ def _first_value(*values: Optional[str]) -> str:
         if value is not None and str(value).strip():
             return str(value).strip()
     return ""
+
+
+def _parse_int_setting(name: str, value: str) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"invalid {name}") from None
+    if parsed <= 0:
+        raise ValueError(f"invalid {name}")
+    return parsed
+
+
+def _parse_float_setting(name: str, value: str) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"invalid {name}") from None
+    if parsed <= 0:
+        raise ValueError(f"invalid {name}")
+    return parsed
 
 
 if __name__ == "__main__":

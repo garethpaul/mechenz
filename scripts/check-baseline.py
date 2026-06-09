@@ -20,6 +20,7 @@ REQUIRED = [
     "docs/plans/2026-06-08-mechenz-modernization.md",
     "docs/plans/2026-06-08-python3-scraper-baseline.md",
     "docs/plans/2026-06-08-scrape-settings-validation.md",
+    "docs/plans/2026-06-09-mail-settings-validation.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -54,12 +55,15 @@ def main() -> int:
                 return 1
 
     main_source = (ROOT / "main.py").read_text(encoding="utf-8")
+    mail_source = (ROOT / "RoyalMail.py").read_text(encoding="utf-8")
     test_main = (ROOT / "tests/test_main.py").read_text(encoding="utf-8")
+    test_mail = (ROOT / "tests/test_royal_mail.py").read_text(encoding="utf-8")
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     vision = (ROOT / "VISION.md").read_text(encoding="utf-8")
     security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
     changes = (ROOT / "CHANGES.md").read_text(encoding="utf-8")
     settings_plan = (ROOT / "docs/plans/2026-06-08-scrape-settings-validation.md").read_text(encoding="utf-8")
+    mail_plan = (ROOT / "docs/plans/2026-06-09-mail-settings-validation.md").read_text(encoding="utf-8")
 
     checks = [
         ("empty required settings" in main_source and "required_values" in main_source,
@@ -74,6 +78,18 @@ def main() -> int:
          "CHANGES must record scrape settings validation"),
         ("status: completed" in settings_plan,
          "scrape settings validation plan must be marked completed"),
+        ("_parse_int_setting" in mail_source and "_parse_float_setting" in mail_source,
+         "RoyalMail must sanitize numeric SMTP setting parsing"),
+        ("invalid SMTP_PORT" in test_mail and "invalid SMTP_TIMEOUT" in test_mail,
+         "tests must cover invalid numeric SMTP settings"),
+        ("smtp numeric setting validation" in readme.lower()
+         and "smtp numeric setting validation" in vision.lower()
+         and "smtp numeric setting validation" in security.lower(),
+         "docs must mention SMTP numeric setting validation"),
+        ("smtp numeric setting validation" in changes.lower(),
+         "CHANGES must record SMTP numeric setting validation"),
+        ("status: completed" in mail_plan,
+         "SMTP numeric setting validation plan must be marked completed"),
     ]
     for passed, message in checks:
         if not passed:

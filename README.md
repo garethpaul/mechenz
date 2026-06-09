@@ -76,6 +76,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Keep `settings.py`, SMTP credentials, target-site secrets, `.env` files, logs, and scraped private data out of git.
 - Use `settings.py.example` only as a placeholder template with fake values.
 - Scrape settings validation rejects blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
+- SMTP numeric setting validation rejects invalid port and timeout values without echoing raw configuration values.
 - Prefer `SMTP_LOGIN` and `SMTP_PASSWORD` environment variables for SMTP credentials; `settings.py` SMTP fields exist only for local compatibility.
 - Keep `respect_robots = True` unless target-site access rules are documented.
 
@@ -90,6 +91,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 
 - Run `make check` before pushing scraper, parser, mailer, dependency, settings-template, or documentation changes.
 - See `docs/plans/2026-06-08-mechenz-baseline.md` for the current baseline plan.
+- See `docs/plans/2026-06-09-mail-settings-validation.md` for the SMTP numeric setting validation guard.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 
