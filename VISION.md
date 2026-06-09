@@ -12,8 +12,9 @@ site, caching previous results, and notifying via email.
 The goal is to keep the automation understandable while making credentials,
 scraping behavior, and email delivery safe.
 
-Current baseline: `make check` compiles `main.py` and `RoyalMail.py`, then runs
-offline unit tests for action parsing, email body generation, cache comparison,
+Current baseline: `make lint`, `make test`, `make build`, and `make check`
+cover the static baseline, offline unit tests, Python compilation, generated
+artifact cleanup, action parsing, email body generation, cache comparison,
 settings validation, scrape settings validation, notification delivery, SMTP
 environment configuration, SMTP numeric setting validation, and SMTP TLS/login
 setup.
@@ -31,6 +32,8 @@ Priority:
 - Keep robot setting validation strict enough that typos fail closed
 - Avoid ignoring robots or site terms without explicit documentation
 - Keep offline tests independent of live scraping, memcache, Gmail, and local credentials
+- Keep `make lint`, `make test`, `make build`, and `make check` available as
+  local verification gates
 - Maintain security policy for the sample
 
 Next priorities:
@@ -42,7 +45,7 @@ Contribution rules:
 
 - One PR = one focused scraper, cache, mail, or documentation change.
 - Do not commit Gmail credentials, target-site secrets, or scraped private data.
-- Run `make check` before pushing changes.
+- Run `make lint`, `make test`, `make build`, and `make check` before pushing changes.
 - Verify behavior with fixtures before live scraping.
 - Document target-site access assumptions.
 - Preserve scrape settings validation when changing live-run configuration.

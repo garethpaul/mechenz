@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Added local `make lint` and `make build` gate targets alongside `make test`
+  and `make check` for the Python scraper baseline.
 - Added scrape URL validation so malformed or non-HTTP(S) target URLs fail
   before live scraping.
 - Added SMTP recipient normalization so blank recipient lists fail before an

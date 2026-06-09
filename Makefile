@@ -1,9 +1,13 @@
-.PHONY: check test compile static-check clean fmt
+.PHONY: build check clean compile fmt lint static-check test
 
-check: clean test compile static-check
+check: clean lint test build
+
+lint: static-check
 
 test:
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
+
+build: compile
 
 compile:
 	python3 -c "from pathlib import Path; [compile(path.read_text(), str(path), 'exec') for path in [Path('RoyalMail.py'), Path('main.py'), *Path('tests').glob('*.py')]]"

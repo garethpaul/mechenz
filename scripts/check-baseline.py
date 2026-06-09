@@ -22,6 +22,7 @@ REQUIRED = [
     "docs/plans/2026-06-08-scrape-settings-validation.md",
     "docs/plans/2026-06-09-mail-settings-validation.md",
     "docs/plans/2026-06-09-mail-recipient-normalization.md",
+    "docs/plans/2026-06-09-make-gate-targets.md",
     "docs/plans/2026-06-09-robot-setting-validation.md",
     "docs/plans/2026-06-09-scrape-url-validation.md",
     "tests/test_main.py",
@@ -65,13 +66,28 @@ def main() -> int:
     vision = (ROOT / "VISION.md").read_text(encoding="utf-8")
     security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
     changes = (ROOT / "CHANGES.md").read_text(encoding="utf-8")
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     settings_plan = (ROOT / "docs/plans/2026-06-08-scrape-settings-validation.md").read_text(encoding="utf-8")
     mail_plan = (ROOT / "docs/plans/2026-06-09-mail-settings-validation.md").read_text(encoding="utf-8")
     recipient_plan = (ROOT / "docs/plans/2026-06-09-mail-recipient-normalization.md").read_text(encoding="utf-8")
+    make_gates_plan = (ROOT / "docs/plans/2026-06-09-make-gate-targets.md").read_text(encoding="utf-8")
     robot_plan = (ROOT / "docs/plans/2026-06-09-robot-setting-validation.md").read_text(encoding="utf-8")
     url_plan = (ROOT / "docs/plans/2026-06-09-scrape-url-validation.md").read_text(encoding="utf-8")
 
     checks = [
+        (".PHONY: build check clean compile fmt lint static-check test" in makefile
+         and "check: clean lint test build" in makefile
+         and "lint: static-check" in makefile
+         and "build: compile" in makefile,
+         "Makefile must expose standard lint, test, build, and check gates"),
+        ("make lint" in readme and "make test" in readme and "make build" in readme,
+         "README must document standard Make gates"),
+        ("make lint" in vision and "make test" in vision and "make build" in vision,
+         "VISION must document standard Make gates"),
+        ("make lint" in changes and "make test" in changes and "make build" in changes,
+         "CHANGES must record standard Make gates"),
+        ("status: completed" in make_gates_plan,
+         "Make gate targets plan must be marked completed"),
         ("empty required settings" in main_source and "required_values" in main_source,
          "load_scrape_settings must reject blank required settings"),
         ("test_load_scrape_settings_rejects_blank_required_values" in test_main,

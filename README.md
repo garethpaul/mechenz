@@ -26,7 +26,7 @@ Additional scan context:
 
 - Source files: main.py, RoyalMail.py
 - Dependency and build manifests: Makefile, requirements.txt
-- Entry points or build surfaces: `make check`, main.py
+- Entry points or build surfaces: `make lint`, `make test`, `make build`, `make check`, main.py
 - Test-looking files: tests/test_main.py, tests/test_royal_mail.py, tests/test_royalmail.py
 
 ## Getting Started
@@ -42,6 +42,9 @@ Additional scan context:
 ```bash
 git clone https://github.com/garethpaul/mechenz.git
 cd mechenz
+make lint
+make test
+make build
 make check
 cp settings.py.example settings.py
 ```
@@ -66,7 +69,10 @@ python3 main.py
 
 ## Testing and Verification
 
-- `make check` compiles the Python modules and runs `python3 -m unittest discover -s tests`.
+- `make lint` runs the static baseline and repository guardrails.
+- `make test` runs `python3 -m unittest discover -s tests`.
+- `make build` compiles the Python modules.
+- `make check` cleans generated Python artifacts, then runs lint, test, and build.
 - The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -94,8 +100,9 @@ When the required SDK or runtime is unavailable, use static checks and source re
 
 ## Maintenance Notes
 
-- Run `make check` before pushing scraper, parser, mailer, dependency, settings-template, or documentation changes.
+- Run `make lint`, `make test`, `make build`, and `make check` before pushing scraper, parser, mailer, dependency, settings-template, or documentation changes.
 - See `docs/plans/2026-06-08-mechenz-baseline.md` for the current baseline plan.
+- See `docs/plans/2026-06-09-make-gate-targets.md` for the local gate target guardrail.
 - See `docs/plans/2026-06-09-mail-settings-validation.md` for the SMTP numeric setting validation guard.
 - See `docs/plans/2026-06-09-scrape-url-validation.md` for the scrape URL validation guard.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
