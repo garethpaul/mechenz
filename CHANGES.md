@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-10
+
+- Added scrape encoding validation so unknown response codecs fail before live
+  scraping without echoing raw configuration values.
+
 ## 2026-06-09
 
 - Added local `make lint` and `make build` gate targets alongside `make test`

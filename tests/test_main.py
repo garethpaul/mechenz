@@ -128,6 +128,42 @@ class MainTests(unittest.TestCase):
 
         self.assertFalse(settings.respect_robots)
 
+    def test_load_scrape_settings_accepts_valid_encoding(self):
+        module = SimpleNamespace(
+            name="sample",
+            to="to@example.com",
+            site="https://example.com",
+            form_url="https://example.com/results",
+            form={"q": "value"},
+            fake_user_agent="Mechenz",
+            fake_referer="https://example.com",
+            encoding=" latin-1 ",
+        )
+
+        settings = main.load_scrape_settings(module)
+
+        self.assertEqual(settings.encoding, "latin-1")
+
+    def test_load_scrape_settings_rejects_invalid_encoding(self):
+        module = SimpleNamespace(
+            name="sample",
+            to="to@example.com",
+            site="https://example.com",
+            form_url="https://example.com/results",
+            form={"q": "value"},
+            fake_user_agent="Mechenz",
+            fake_referer="https://example.com",
+            encoding="not-a-codec",
+        )
+
+        with self.assertRaisesRegex(ValueError, "invalid encoding"):
+            main.load_scrape_settings(module)
+
+        try:
+            main.load_scrape_settings(module)
+        except ValueError as error:
+            self.assertNotIn("not-a-codec", str(error))
+
     def test_load_scrape_settings_rejects_ambiguous_respect_robots_value(self):
         module = SimpleNamespace(
             name="sample",

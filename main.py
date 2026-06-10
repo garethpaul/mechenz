@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import codecs
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -170,7 +171,7 @@ def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -
         fake_user_agent=required_values["fake_user_agent"],
         fake_referer=required_values["fake_referer"],
         respect_robots=respect_robots,
-        encoding=str(getattr(settings_module, "encoding", "utf-8")).strip() or "utf-8",
+        encoding=_parse_encoding_setting("encoding", getattr(settings_module, "encoding", "utf-8")),
     )
 
 
@@ -233,6 +234,17 @@ def _parse_bool_setting(name: str, value, default: bool = False) -> bool:
 def _valid_http_url(value: str) -> bool:
     parsed = urlparse(value)
     return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _parse_encoding_setting(name: str, value, default: str = "utf-8") -> str:
+    encoding = str(value).strip() if value is not None else default
+    if not encoding:
+        return default
+    try:
+        codecs.lookup(encoding)
+    except LookupError:
+        raise ValueError(f"invalid {name}") from None
+    return encoding
 
 
 if __name__ == "__main__":

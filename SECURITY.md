@@ -31,6 +31,7 @@ Helpful reports include:
 - Prefer `SMTP_LOGIN` and `SMTP_PASSWORD` environment variables for SMTP credentials. Keep `settings.py`, SMTP credentials, target-site secrets, scraped private data, logs, and `.env` files out of git.
 - Scrape settings validation should reject blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
 - Scrape URL validation should reject malformed or non-HTTP(S) target URLs before mechanize opens them.
+- Scrape encoding validation should reject unknown response codec names before live scraping without echoing raw configuration values.
 - SMTP numeric setting validation should reject invalid port and timeout values without echoing raw configuration values.
 - SMTP recipient normalization should strip recipient addresses and reject all-blank recipient lists before opening outbound SMTP connections.
 - SMTP header validation should reject CRLF in sender, recipient, and subject
@@ -42,7 +43,7 @@ Helpful reports include:
 
 For web services, APIs, sockets, or scraping workflows, prioritize reports involving authentication bypass, authorization errors, injection, server-side request forgery, unsafe deserialization, credential leakage, data exposure, or denial-of-service conditions. Use test accounts and minimal proof-of-concept traffic only.
 
-For this project, reports should also describe whether scrape settings validation, robot setting validation, target-site terms, cache keys, or outbound email delivery could expose credentials or scraped private data.
+For this project, reports should also describe whether scrape settings validation, scrape encoding validation, robot setting validation, target-site terms, cache keys, or outbound email delivery could expose credentials or scraped private data.
 
 ## Dependency and Supply Chain Security
 

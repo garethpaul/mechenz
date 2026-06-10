@@ -88,6 +88,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - SMTP header validation rejects CRLF in sender, recipient, or subject values
   before opening SMTP connections.
 - Robot setting validation rejects ambiguous `respect_robots` and `MECHENZ_IGNORE_ROBOTS` values without echoing raw configuration values.
+- Scrape encoding validation rejects unknown response encodings before a live
+  run without echoing raw configuration values.
 - Prefer `SMTP_LOGIN` and `SMTP_PASSWORD` environment variables for SMTP credentials; `settings.py` SMTP fields exist only for local compatibility.
 - Keep `respect_robots = True` unless target-site access rules are documented.
 
@@ -98,6 +100,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Keep scrape settings validation in place so blank target or recipient settings fail before live scraping or email delivery.
 - Keep scrape URL validation in place so malformed or non-HTTP(S) targets fail before mechanize opens them.
 - Keep robot setting validation in place so typos do not silently disable robot handling.
+- Keep scrape encoding validation in place so invalid response codec names fail before live scraping.
 - Keep SMTP header validation in place so sender, recipient, and subject values
   cannot inject additional mail headers.
 - Tests should use fixtures and injected fakes, not live target sites, memcache, or SMTP.
@@ -109,6 +112,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - See `docs/plans/2026-06-09-make-gate-targets.md` for the local gate target guardrail.
 - See `docs/plans/2026-06-09-mail-settings-validation.md` for the SMTP numeric setting validation guard.
 - See `docs/plans/2026-06-09-scrape-url-validation.md` for the scrape URL validation guard.
+- See `docs/plans/2026-06-10-scrape-encoding-validation.md` for the scrape encoding validation guard.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 

@@ -26,6 +26,7 @@ REQUIRED = [
     "docs/plans/2026-06-09-robot-setting-validation.md",
     "docs/plans/2026-06-09-scrape-url-validation.md",
     "docs/plans/2026-06-09-smtp-header-validation.md",
+    "docs/plans/2026-06-10-scrape-encoding-validation.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -75,6 +76,7 @@ def main() -> int:
     robot_plan = (ROOT / "docs/plans/2026-06-09-robot-setting-validation.md").read_text(encoding="utf-8")
     url_plan = (ROOT / "docs/plans/2026-06-09-scrape-url-validation.md").read_text(encoding="utf-8")
     header_plan = (ROOT / "docs/plans/2026-06-09-smtp-header-validation.md").read_text(encoding="utf-8")
+    encoding_plan = (ROOT / "docs/plans/2026-06-10-scrape-encoding-validation.md").read_text(encoding="utf-8")
 
     checks = [
         (".PHONY: build check clean compile fmt lint static-check test" in makefile
@@ -116,6 +118,19 @@ def main() -> int:
          "CHANGES must record scrape URL validation"),
         ("status: completed" in url_plan,
          "scrape URL validation plan must be marked completed"),
+        ("_parse_encoding_setting" in main_source
+         and "codecs.lookup(encoding)" in main_source
+         and "test_load_scrape_settings_rejects_invalid_encoding" in test_main
+         and "not-a-codec" in test_main,
+         "load_scrape_settings must validate configured scrape encodings"),
+        ("scrape encoding validation" in readme.lower()
+         and "scrape encoding validation" in vision.lower()
+         and "scrape encoding validation" in security.lower(),
+         "docs must mention scrape encoding validation"),
+        ("scrape encoding validation" in changes.lower(),
+         "CHANGES must record scrape encoding validation"),
+        ("status: completed" in encoding_plan,
+         "scrape encoding validation plan must be marked completed"),
         ("_parse_int_setting" in mail_source and "_parse_float_setting" in mail_source,
          "RoyalMail must sanitize numeric SMTP setting parsing"),
         ("invalid SMTP_PORT" in test_mail and "invalid SMTP_TIMEOUT" in test_mail,
