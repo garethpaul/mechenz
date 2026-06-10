@@ -35,7 +35,9 @@ Helpful reports include:
 - Scrape settings validation should reject blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
 - Scrape URL validation should reject malformed or non-HTTP(S) target URLs before mechanize opens them.
 - Scrape encoding validation should reject unknown response codec names before live scraping without echoing raw configuration values.
-- SMTP numeric setting validation should reject invalid port and timeout values without echoing raw configuration values.
+- SMTP numeric setting validation should restrict ports to `1..65535` and
+  timeouts to finite values no greater than 300 seconds without echoing raw
+  configuration values.
 - SMTP recipient normalization should strip recipient addresses and reject all-blank recipient lists before opening outbound SMTP connections.
 - SMTP header validation should reject CRLF in sender, recipient, and subject
   values before opening outbound SMTP connections.

@@ -2,6 +2,8 @@
 
 ## 2026-06-10
 
+- Bounded SMTP ports to `1..65535` and SMTP timeouts to finite values no
+  greater than 300 seconds.
 - Added pinned, read-only Python 3.12 hosted validation for dependency
   installation, `pip check`, and the offline canonical gate.
 - Added scrape encoding validation so unknown response codecs fail before live

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
+import math
 import os
 import smtplib
 from typing import Optional
@@ -40,10 +41,12 @@ def load_mail_settings(
     port = _parse_int_setting(
         "SMTP_PORT",
         _first_value(env.get("SMTP_PORT"), _module_value(settings_module, "smtp_port"), "587"),
+        maximum=65535,
     )
     timeout = _parse_float_setting(
         "SMTP_TIMEOUT",
         _first_value(env.get("SMTP_TIMEOUT"), _module_value(settings_module, "smtp_timeout"), "10"),
+        maximum=300.0,
     )
 
     return MailSettings(
@@ -130,22 +133,22 @@ def _first_value(*values: Optional[str]) -> str:
     return ""
 
 
-def _parse_int_setting(name: str, value: str) -> int:
+def _parse_int_setting(name: str, value: str, maximum: Optional[int] = None) -> int:
     try:
         parsed = int(value)
     except (TypeError, ValueError):
         raise ValueError(f"invalid {name}") from None
-    if parsed <= 0:
+    if parsed <= 0 or (maximum is not None and parsed > maximum):
         raise ValueError(f"invalid {name}")
     return parsed
 
 
-def _parse_float_setting(name: str, value: str) -> float:
+def _parse_float_setting(name: str, value: str, maximum: Optional[float] = None) -> float:
     try:
         parsed = float(value)
     except (TypeError, ValueError):
         raise ValueError(f"invalid {name}") from None
-    if parsed <= 0:
+    if not math.isfinite(parsed) or parsed <= 0 or (maximum is not None and parsed > maximum):
         raise ValueError(f"invalid {name}")
     return parsed
 

@@ -28,7 +28,8 @@ Priority:
 - Keep scrape settings validation strict enough to reject blank live-run targets
 - Keep scrape URL validation strict enough to reject non-HTTP(S) live-run targets
 - Keep scrape encoding validation strict enough to reject unknown response codecs
-- Keep SMTP numeric setting validation from leaking raw invalid configuration values
+- Keep SMTP ports within `1..65535`, SMTP timeouts finite and at most 300
+  seconds, and validation errors free of raw configuration values
 - Keep SMTP recipient normalization before opening outbound SMTP connections
 - Keep SMTP header validation before opening outbound SMTP connections
 - Keep robot setting validation strict enough that typos fail closed

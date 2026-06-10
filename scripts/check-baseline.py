@@ -29,6 +29,7 @@ REQUIRED = [
     "docs/plans/2026-06-09-smtp-header-validation.md",
     "docs/plans/2026-06-10-scrape-encoding-validation.md",
     "docs/plans/2026-06-10-hosted-python-validation.md",
+    "docs/plans/2026-06-10-smtp-numeric-bounds.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -80,6 +81,7 @@ def main() -> int:
     header_plan = (ROOT / "docs/plans/2026-06-09-smtp-header-validation.md").read_text(encoding="utf-8")
     encoding_plan = (ROOT / "docs/plans/2026-06-10-scrape-encoding-validation.md").read_text(encoding="utf-8")
     hosted_validation_plan = (ROOT / "docs/plans/2026-06-10-hosted-python-validation.md").read_text(encoding="utf-8")
+    numeric_bounds_plan = (ROOT / "docs/plans/2026-06-10-smtp-numeric-bounds.md").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
 
     checks = [
@@ -151,8 +153,18 @@ def main() -> int:
          "scrape encoding validation plan must be marked completed"),
         ("_parse_int_setting" in mail_source and "_parse_float_setting" in mail_source,
          "RoyalMail must sanitize numeric SMTP setting parsing"),
+        ("maximum=65535" in mail_source
+         and "maximum=300.0" in mail_source
+         and "math.isfinite(parsed)" in mail_source,
+         "RoyalMail must bound SMTP ports and require finite bounded timeouts"),
         ("invalid SMTP_PORT" in test_mail and "invalid SMTP_TIMEOUT" in test_mail,
          "tests must cover invalid numeric SMTP settings"),
+        ("test_load_mail_settings_rejects_port_outside_tcp_range" in test_mail
+         and "test_load_mail_settings_rejects_unbounded_timeout" in test_mail
+         and "test_load_mail_settings_accepts_numeric_upper_bounds" in test_mail
+         and '"65536"' in test_mail
+         and '"nan", "inf", "301"' in test_mail,
+         "tests must cover SMTP port and timeout upper bounds"),
         ("smtp numeric setting validation" in readme.lower()
          and "smtp numeric setting validation" in vision.lower()
          and "smtp numeric setting validation" in security.lower(),
@@ -161,6 +173,10 @@ def main() -> int:
          "CHANGES must record SMTP numeric setting validation"),
         ("status: completed" in mail_plan,
          "SMTP numeric setting validation plan must be marked completed"),
+        ("status: completed" in numeric_bounds_plan
+         and "65535" in numeric_bounds_plan
+         and "300 seconds" in numeric_bounds_plan,
+         "SMTP numeric bounds plan must be completed and document both limits"),
         ("str(address).strip()" in mail_source and "if not recipients" in mail_source,
          "RoyalMail must normalize and reject blank SMTP recipients"),
         ("test_send_mail_normalizes_recipients" in test_mail
