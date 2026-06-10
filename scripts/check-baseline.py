@@ -9,6 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = [
     ".gitignore",
+    ".github/workflows/check.yml",
     "CHANGES.md",
     "Makefile",
     "README.md",
@@ -27,6 +28,7 @@ REQUIRED = [
     "docs/plans/2026-06-09-scrape-url-validation.md",
     "docs/plans/2026-06-09-smtp-header-validation.md",
     "docs/plans/2026-06-10-scrape-encoding-validation.md",
+    "docs/plans/2026-06-10-hosted-python-validation.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -77,8 +79,24 @@ def main() -> int:
     url_plan = (ROOT / "docs/plans/2026-06-09-scrape-url-validation.md").read_text(encoding="utf-8")
     header_plan = (ROOT / "docs/plans/2026-06-09-smtp-header-validation.md").read_text(encoding="utf-8")
     encoding_plan = (ROOT / "docs/plans/2026-06-10-scrape-encoding-validation.md").read_text(encoding="utf-8")
+    hosted_validation_plan = (ROOT / "docs/plans/2026-06-10-hosted-python-validation.md").read_text(encoding="utf-8")
+    workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
 
     checks = [
+        ("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
+         "hosted Python validation plan must be marked completed"),
+        ("permissions:\n  contents: read" in workflow
+         and "cancel-in-progress: true" in workflow
+         and "runs-on: ubuntu-24.04" in workflow
+         and "timeout-minutes: 10" in workflow
+         and "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow
+         and "actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405" in workflow
+         and 'python-version: "3.12"' in workflow
+         and "cache-dependency-path: requirements.txt" in workflow
+         and "python -m pip install --requirement requirements.txt" in workflow
+         and "python -m pip check" in workflow
+         and "run: make check" in workflow,
+         "Check workflow must stay pinned, read-only, bounded, and dependency-aware"),
         (".PHONY: build check clean compile fmt lint static-check test" in makefile
          and "check: clean lint test build" in makefile
          and "lint: static-check" in makefile

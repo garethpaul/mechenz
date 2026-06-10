@@ -74,6 +74,10 @@ python3 main.py
 - `make build` compiles the Python modules.
 - `make check` cleans generated Python artifacts, then runs lint, test, and build.
 - The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
+- Pinned `ubuntu-24.04` GitHub Actions installs `requirements.txt`, runs
+  `pip check`, and executes `make check` on Python 3.12. Hosted tests remain
+  offline and do not scrape target sites, connect to memcached, authenticate to
+  SMTP, or send email.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 

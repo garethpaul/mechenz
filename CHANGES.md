@@ -2,6 +2,8 @@
 
 ## 2026-06-10
 
+- Added pinned, read-only Python 3.12 hosted validation for dependency
+  installation, `pip check`, and the offline canonical gate.
 - Added scrape encoding validation so unknown response codecs fail before live
   scraping without echoing raw configuration values.
 
