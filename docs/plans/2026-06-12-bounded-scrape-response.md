@@ -64,7 +64,11 @@ Completed locally on 2026-06-12:
   removing guaranteed response closure failed three focused tests
 - `git diff --check`
 
-Hosted push and pull-request checks will be recorded after the branch is pushed.
+Completed on GitHub Actions for implementation head
+`8652c4a04d363f8a633b3bae4af1ef0bad3edfdb`:
+
+- push run `27397179571`: success
+- pull-request run `27397182018`: success
 
 ## Boundaries
 
