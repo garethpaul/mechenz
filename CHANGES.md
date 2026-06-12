@@ -2,10 +2,13 @@
 
 ## 2026-06-10
 
+- Bounded SMTP ports to `1..65535` and SMTP timeouts to finite values no
+  greater than 300 seconds.
+- Added pinned, read-only Python 3.12 GitHub Actions validation for pushes and
+  pull requests, with credential-free checkout, dependency installation, `pip
+  check`, and the offline canonical gate.
 - Added scrape encoding validation so unknown response codecs fail before live
   scraping without echoing raw configuration values.
-- Added a GitHub Actions workflow that runs the Python 3.12 `make check`
-  baseline for pushes and pull requests.
 
 ## 2026-06-09
 

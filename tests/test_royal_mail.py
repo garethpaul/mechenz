@@ -96,6 +96,43 @@ class RoyalMailTests(unittest.TestCase):
         except ValueError as error:
             self.assertNotIn("not-a-timeout", str(error))
 
+    def test_load_mail_settings_rejects_port_outside_tcp_range(self):
+        for port in ("0", "65536"):
+            with self.subTest(port=port):
+                with self.assertRaisesRegex(ValueError, "invalid SMTP_PORT"):
+                    RoyalMail.load_mail_settings(
+                        {
+                            "SMTP_LOGIN": "sender@example.com",
+                            "SMTP_PASSWORD": "secret",
+                            "SMTP_PORT": port,
+                        }
+                    )
+
+    def test_load_mail_settings_rejects_unbounded_timeout(self):
+        for timeout in ("nan", "inf", "301"):
+            with self.subTest(timeout=timeout):
+                with self.assertRaisesRegex(ValueError, "invalid SMTP_TIMEOUT"):
+                    RoyalMail.load_mail_settings(
+                        {
+                            "SMTP_LOGIN": "sender@example.com",
+                            "SMTP_PASSWORD": "secret",
+                            "SMTP_TIMEOUT": timeout,
+                        }
+                    )
+
+    def test_load_mail_settings_accepts_numeric_upper_bounds(self):
+        settings = RoyalMail.load_mail_settings(
+            {
+                "SMTP_LOGIN": "sender@example.com",
+                "SMTP_PASSWORD": "secret",
+                "SMTP_PORT": "65535",
+                "SMTP_TIMEOUT": "300",
+            }
+        )
+
+        self.assertEqual(settings.port, 65535)
+        self.assertEqual(settings.timeout, 300.0)
+
     def test_send_mail_uses_tls_login_and_recipients(self):
         settings = RoyalMail.MailSettings(
             login="sender@example.com",

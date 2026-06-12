@@ -74,8 +74,11 @@ python3 main.py
 - `make build` compiles the Python modules.
 - `make check` cleans generated Python artifacts, then runs lint, test, and build.
 - The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
-- GitHub Actions runs the same `make check` baseline with Python 3.12 for
-  pushes and pull requests.
+- Pinned `ubuntu-24.04` GitHub Actions installs `requirements.txt`, runs
+  `pip check`, and executes the same `make check` baseline on Python 3.12 for
+  pushes and pull requests. Checkout credentials are not persisted. Hosted
+  tests remain offline and do not scrape target sites, connect to memcached,
+  authenticate to SMTP, or send email.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 
@@ -85,7 +88,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Use `settings.py.example` only as a placeholder template with fake values.
 - Scrape settings validation rejects blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
 - Scrape URL validation rejects non-HTTP(S) target and result URLs before a live run.
-- SMTP numeric setting validation rejects invalid port and timeout values without echoing raw configuration values.
+- SMTP numeric setting validation restricts ports to `1..65535` and timeouts to
+  finite values no greater than 300 seconds without echoing raw configuration.
 - SMTP recipient normalization strips recipient addresses and rejects all-blank recipient lists before opening SMTP connections.
 - SMTP header validation rejects CRLF in sender, recipient, or subject values
   before opening SMTP connections.

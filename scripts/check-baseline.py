@@ -7,6 +7,46 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
+EXPECTED_WORKFLOW = """name: Check
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install --requirement requirements.txt
+
+      - name: Verify dependencies
+        run: python -m pip check
+
+      - name: Run baseline
+        run: make check
+"""
 REQUIRED = [
     ".gitignore",
     ".github/workflows/check.yml",
@@ -29,6 +69,8 @@ REQUIRED = [
     "docs/plans/2026-06-09-smtp-header-validation.md",
     "docs/plans/2026-06-10-scrape-encoding-validation.md",
     "docs/plans/2026-06-10-ci-baseline.md",
+    "docs/plans/2026-06-10-hosted-python-validation.md",
+    "docs/plans/2026-06-10-smtp-numeric-bounds.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -54,7 +96,7 @@ def main() -> int:
             return 1
         if path.is_dir() or "__pycache__" in path.parts:
             continue
-        if path.suffix not in {".py", ".md", ".txt"}:
+        if path.suffix not in {".py", ".md", ".txt", ".example"}:
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
         for pattern in SECRET_PATTERNS:
@@ -81,8 +123,14 @@ def main() -> int:
     header_plan = (ROOT / "docs/plans/2026-06-09-smtp-header-validation.md").read_text(encoding="utf-8")
     encoding_plan = (ROOT / "docs/plans/2026-06-10-scrape-encoding-validation.md").read_text(encoding="utf-8")
     ci_plan = (ROOT / "docs/plans/2026-06-10-ci-baseline.md").read_text(encoding="utf-8")
+    hosted_validation_plan = (ROOT / "docs/plans/2026-06-10-hosted-python-validation.md").read_text(encoding="utf-8")
+    numeric_bounds_plan = (ROOT / "docs/plans/2026-06-10-smtp-numeric-bounds.md").read_text(encoding="utf-8")
 
     checks = [
+        ("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
+         "hosted Python validation plan must be marked completed"),
+        (ci_workflow == EXPECTED_WORKFLOW,
+         "Check workflow must exactly preserve pinned, credential-free, bounded dependency validation"),
         (".PHONY: build check clean compile fmt lint static-check test" in makefile
          and "check: clean lint test build" in makefile
          and "lint: static-check" in makefile
@@ -97,10 +145,6 @@ def main() -> int:
         ("GitHub Actions" in readme and "GitHub Actions" in vision
          and "GitHub Actions" in security and "GitHub Actions" in changes,
          "docs must mention the hosted GitHub Actions baseline"),
-        ("actions/setup-python@v5" in ci_workflow
-         and 'python-version: "3.12"' in ci_workflow
-         and "make check" in ci_workflow,
-         "GitHub Actions workflow must install Python 3.12 and run make check"),
         ("status: completed" in ci_plan and "make check" in ci_plan,
          "CI baseline plan must be marked completed with make check verification"),
         ("status: completed" in make_gates_plan,
@@ -131,7 +175,8 @@ def main() -> int:
          "CHANGES must record scrape URL validation"),
         ("status: completed" in url_plan,
          "scrape URL validation plan must be marked completed"),
-        ("_parse_encoding_setting" in main_source
+        ("def _parse_encoding_setting(" in main_source
+         and 'encoding=_parse_encoding_setting("encoding",' in main_source
          and "codecs.lookup(encoding)" in main_source
          and "test_load_scrape_settings_rejects_invalid_encoding" in test_main
          and "not-a-codec" in test_main,
@@ -146,8 +191,18 @@ def main() -> int:
          "scrape encoding validation plan must be marked completed"),
         ("_parse_int_setting" in mail_source and "_parse_float_setting" in mail_source,
          "RoyalMail must sanitize numeric SMTP setting parsing"),
+        ("maximum=65535" in mail_source
+         and "maximum=300.0" in mail_source
+         and "math.isfinite(parsed)" in mail_source,
+         "RoyalMail must bound SMTP ports and require finite bounded timeouts"),
         ("invalid SMTP_PORT" in test_mail and "invalid SMTP_TIMEOUT" in test_mail,
          "tests must cover invalid numeric SMTP settings"),
+        ("test_load_mail_settings_rejects_port_outside_tcp_range" in test_mail
+         and "test_load_mail_settings_rejects_unbounded_timeout" in test_mail
+         and "test_load_mail_settings_accepts_numeric_upper_bounds" in test_mail
+         and '"65536"' in test_mail
+         and '"nan", "inf", "301"' in test_mail,
+         "tests must cover SMTP port and timeout upper bounds"),
         ("smtp numeric setting validation" in readme.lower()
          and "smtp numeric setting validation" in vision.lower()
          and "smtp numeric setting validation" in security.lower(),
@@ -156,6 +211,10 @@ def main() -> int:
          "CHANGES must record SMTP numeric setting validation"),
         ("status: completed" in mail_plan,
          "SMTP numeric setting validation plan must be marked completed"),
+        ("status: completed" in numeric_bounds_plan
+         and "65535" in numeric_bounds_plan
+         and "300 seconds" in numeric_bounds_plan,
+         "SMTP numeric bounds plan must be completed and document both limits"),
         ("str(address).strip()" in mail_source and "if not recipients" in mail_source,
          "RoyalMail must normalize and reject blank SMTP recipients"),
         ("test_send_mail_normalizes_recipients" in test_mail

@@ -30,7 +30,8 @@ Priority:
 - Keep scrape settings validation strict enough to reject blank live-run targets
 - Keep scrape URL validation strict enough to reject non-HTTP(S) live-run targets
 - Keep scrape encoding validation strict enough to reject unknown response codecs
-- Keep SMTP numeric setting validation from leaking raw invalid configuration values
+- Keep SMTP ports within `1..65535`, SMTP timeouts finite and at most 300
+  seconds, and validation errors free of raw configuration values
 - Keep SMTP recipient normalization before opening outbound SMTP connections
 - Keep SMTP header validation before opening outbound SMTP connections
 - Keep robot setting validation strict enough that typos fail closed
@@ -38,7 +39,9 @@ Priority:
 - Keep offline tests independent of live scraping, memcache, Gmail, and local credentials
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
-- Keep GitHub Actions aligned with the local Python verification baseline
+- Keep pinned, read-only Python 3.12 hosted validation covering dependency
+  installation, `pip check`, the local `make check` baseline, credential-free
+  checkout, and offline tests without live integrations
 - Maintain security policy for the sample
 
 Next priorities:
