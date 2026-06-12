@@ -30,6 +30,7 @@ REQUIRED = [
     "docs/plans/2026-06-10-scrape-encoding-validation.md",
     "docs/plans/2026-06-10-hosted-python-validation.md",
     "docs/plans/2026-06-10-smtp-numeric-bounds.md",
+    "docs/plans/2026-06-12-bounded-scrape-response.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -82,6 +83,7 @@ def main() -> int:
     encoding_plan = (ROOT / "docs/plans/2026-06-10-scrape-encoding-validation.md").read_text(encoding="utf-8")
     hosted_validation_plan = (ROOT / "docs/plans/2026-06-10-hosted-python-validation.md").read_text(encoding="utf-8")
     numeric_bounds_plan = (ROOT / "docs/plans/2026-06-10-smtp-numeric-bounds.md").read_text(encoding="utf-8")
+    response_bound_plan = (ROOT / "docs/plans/2026-06-12-bounded-scrape-response.md").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
 
     checks = [
@@ -151,6 +153,22 @@ def main() -> int:
          "CHANGES must record scrape encoding validation"),
         ("status: completed" in encoding_plan,
          "scrape encoding validation plan must be marked completed"),
+        ("MAXIMUM_SCRAPE_RESPONSE_BYTES = 1024 * 1024" in main_source
+         and "response.read(MAXIMUM_SCRAPE_RESPONSE_BYTES + 1)" in main_source
+         and "response.close()" in main_source
+         and "scrape response exceeds 1 MiB limit" in main_source,
+         "scrape responses must be bounded and closed before parsing"),
+        ("test_fetch_actions_bounds_and_closes_submit_response" in test_main
+         and "test_fetch_actions_rejects_oversized_response_and_closes_it" in test_main
+         and "test_fetch_actions_closes_submit_response_before_form_url_response" in test_main,
+         "tests must cover bounded and closed scrape responses"),
+        ("bounded scrape response" in readme.lower()
+         and "bounded scrape response" in vision.lower()
+         and "bounded scrape response" in security.lower()
+         and "bounded scrape response" in changes.lower(),
+         "docs must describe the bounded scrape response"),
+        ("status: completed" in response_bound_plan and "hostile mutations" in response_bound_plan,
+         "bounded scrape response plan must record completed verification"),
         ("_parse_int_setting" in mail_source and "_parse_float_setting" in mail_source,
          "RoyalMail must sanitize numeric SMTP setting parsing"),
         ("maximum=65535" in mail_source

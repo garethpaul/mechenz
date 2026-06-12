@@ -2,6 +2,8 @@
 
 ## 2026-06-10
 
+- Added a bounded scrape response reader that rejects more than 1 MiB before
+  HTML parsing and closes final or superseded responses.
 - Bounded SMTP ports to `1..65535` and SMTP timeouts to finite values no
   greater than 300 seconds.
 - Added pinned, read-only Python 3.12 hosted validation for dependency

@@ -35,6 +35,8 @@ Helpful reports include:
 - Scrape settings validation should reject blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
 - Scrape URL validation should reject malformed or non-HTTP(S) target URLs before mechanize opens them.
 - Scrape encoding validation should reject unknown response codec names before live scraping without echoing raw configuration values.
+- The bounded scrape response reader should reject more than 1 MiB before HTML
+  parsing and close responses without claiming to bound mechanize transport buffering.
 - SMTP numeric setting validation should restrict ports to `1..65535` and
   timeouts to finite values no greater than 300 seconds without echoing raw
   configuration values.

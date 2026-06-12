@@ -1,6 +1,6 @@
 # Bounded Scrape Response
 
-status: planned
+status: completed
 
 ## Context
 
@@ -52,15 +52,19 @@ Document the parser-input boundary and its transport-buffering limitation.
 
 ## Verification
 
+Completed locally on 2026-06-12:
+
 - `python3 -m py_compile main.py tests/test_main.py scripts/check-baseline.py`
-- `python3 -m unittest tests.test_main`
+- `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_main.py'` (14 tests)
 - `make lint`
-- `make test`
+- `make test` (26 tests)
 - `make build`
-- `make check`
-- hostile mutations removing the overflow byte check or response close
+- `make check` (26 tests plus static and build checks)
+- hostile mutations: removing the overflow-byte probe failed two focused tests;
+  removing guaranteed response closure failed three focused tests
 - `git diff --check`
-- hosted push and pull-request checks
+
+Hosted push and pull-request checks will be recorded after the branch is pushed.
 
 ## Boundaries
 

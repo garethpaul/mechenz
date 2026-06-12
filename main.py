@@ -14,6 +14,9 @@ from urllib.parse import urlparse
 import RoyalMail
 
 
+MAXIMUM_SCRAPE_RESPONSE_BYTES = 1024 * 1024
+
+
 @dataclass(frozen=True)
 class ScrapeSettings:
     name: str
@@ -85,6 +88,17 @@ def build_email_body(actions: Sequence[str]) -> str:
     return "\n".join(lines)
 
 
+def read_scrape_response(response) -> bytes:
+    try:
+        body = response.read(MAXIMUM_SCRAPE_RESPONSE_BYTES + 1)
+    finally:
+        response.close()
+
+    if len(body) > MAXIMUM_SCRAPE_RESPONSE_BYTES:
+        raise ValueError("scrape response exceeds 1 MiB limit")
+    return body
+
+
 def notify_if_changed(
     actions: Sequence[str],
     cache,
@@ -120,8 +134,9 @@ def fetch_actions(settings: ScrapeSettings, browser_factory=None) -> list[str]:
         browser.form[key] = value
     response = browser.submit()
     if settings.form_url:
+        response.close()
         response = browser.open(settings.form_url)
-    return extract_actions(response.read(), encoding=settings.encoding)
+    return extract_actions(read_scrape_response(response), encoding=settings.encoding)
 
 
 def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -> ScrapeSettings:

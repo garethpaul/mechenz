@@ -18,6 +18,45 @@ class FakeCache:
         self.value = value
 
 
+class FakeResponse:
+    def __init__(self, body):
+        self.body = body
+        self.read_sizes = []
+        self.closed = False
+
+    def read(self, size):
+        self.read_sizes.append(size)
+        return self.body[:size]
+
+    def close(self):
+        self.closed = True
+
+
+class FakeBrowser:
+    def __init__(self, submit_response, form_response=None):
+        self.submit_response = submit_response
+        self.form_response = form_response
+        self.addheaders = []
+        self.form = {}
+        self.robots = None
+        self.opened = []
+
+    def set_handle_robots(self, value):
+        self.robots = value
+
+    def open(self, url):
+        self.opened.append(url)
+        if len(self.opened) == 1:
+            return FakeResponse(b"")
+        return self.form_response
+
+    def select_form(self, nr):
+        self.selected_form = nr
+
+    def submit(self):
+        return self.submit_response
+
+
 class MainTests(unittest.TestCase):
     def test_extract_actions_reads_first_span_from_each_action(self):
         html = """
@@ -27,6 +66,49 @@ class MainTests(unittest.TestCase):
         """
 
         self.assertEqual(main.extract_actions(html), ["First", "Second"])
+
+    def test_fetch_actions_bounds_and_closes_submit_response(self):
+        response = FakeResponse(b'<div class="action"><span>First</span></div>')
+        browser = FakeBrowser(response)
+        settings = self.scrape_settings(form_url="")
+
+        actions = main.fetch_actions(settings, browser_factory=lambda: browser)
+
+        self.assertEqual(actions, ["First"])
+        self.assertEqual(response.read_sizes, [main.MAXIMUM_SCRAPE_RESPONSE_BYTES + 1])
+        self.assertTrue(response.closed)
+
+    def test_fetch_actions_rejects_oversized_response_and_closes_it(self):
+        response = FakeResponse(b"x" * (main.MAXIMUM_SCRAPE_RESPONSE_BYTES + 1))
+        browser = FakeBrowser(response)
+
+        with self.assertRaisesRegex(ValueError, "scrape response exceeds 1 MiB limit"):
+            main.fetch_actions(self.scrape_settings(form_url=""), browser_factory=lambda: browser)
+
+        self.assertTrue(response.closed)
+
+    def test_fetch_actions_closes_submit_response_before_form_url_response(self):
+        submit_response = FakeResponse(b"ignored")
+        form_response = FakeResponse(b'<div class="action"><span>Final</span></div>')
+        browser = FakeBrowser(submit_response, form_response)
+
+        actions = main.fetch_actions(self.scrape_settings(), browser_factory=lambda: browser)
+
+        self.assertEqual(actions, ["Final"])
+        self.assertTrue(submit_response.closed)
+        self.assertTrue(form_response.closed)
+
+    @staticmethod
+    def scrape_settings(form_url="https://example.com/results"):
+        return main.ScrapeSettings(
+            name="sample",
+            recipient="to@example.com",
+            site="https://example.com",
+            form_url=form_url,
+            form={"q": "value"},
+            fake_user_agent="Mechenz",
+            fake_referer="https://example.com",
+        )
 
     def test_notify_if_changed_skips_duplicate_cache_value(self):
         sent = []

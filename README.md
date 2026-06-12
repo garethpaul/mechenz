@@ -95,6 +95,9 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Robot setting validation rejects ambiguous `respect_robots` and `MECHENZ_IGNORE_ROBOTS` values without echoing raw configuration values.
 - Scrape encoding validation rejects unknown response encodings before a live
   run without echoing raw configuration values.
+- The bounded scrape response reader accepts at most 1 MiB before HTML parsing,
+  rejects an overflow byte, and closes final responses; lower layers may still
+  buffer transport data.
 - Prefer `SMTP_LOGIN` and `SMTP_PASSWORD` environment variables for SMTP credentials; `settings.py` SMTP fields exist only for local compatibility.
 - Keep `respect_robots = True` unless target-site access rules are documented.
 

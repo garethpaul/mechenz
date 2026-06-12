@@ -28,6 +28,7 @@ Priority:
 - Keep scrape settings validation strict enough to reject blank live-run targets
 - Keep scrape URL validation strict enough to reject non-HTTP(S) live-run targets
 - Keep scrape encoding validation strict enough to reject unknown response codecs
+- Keep a bounded scrape response of at most 1 MiB before HTML parsing
 - Keep SMTP ports within `1..65535`, SMTP timeouts finite and at most 300
   seconds, and validation errors free of raw configuration values
 - Keep SMTP recipient normalization before opening outbound SMTP connections
