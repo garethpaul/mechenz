@@ -16,7 +16,8 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 - `Makefile` - local verification entry point
 - `RoyalMail.py` - SMTP notification helper
 - `main.py` - scraper, parser, cache comparison, and notification flow
-- `requirements.txt` - live-run dependency metadata
+- `requirements.txt` - live-run dependency compatibility ranges
+- `constraints.txt` - reviewed exact dependency graph used by CI
 - `settings.py.example` - local settings template without secrets
 - `tests` - offline unit tests for parsing, cache comparison, and SMTP setup
 - `SECURITY.md` - security reporting and disclosure guidance
@@ -25,7 +26,7 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 Additional scan context:
 
 - Source files: main.py, RoyalMail.py
-- Dependency and build manifests: Makefile, requirements.txt
+- Dependency and build manifests: Makefile, requirements.txt, constraints.txt
 - Entry points or build surfaces: `make lint`, `make test`, `make build`, `make check`, main.py
 - Test-looking files: tests/test_main.py, tests/test_royal_mail.py, tests/test_royalmail.py
 
@@ -56,7 +57,7 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Install live-run dependencies when you are ready to poll a real site:
 
 ```bash
-python3 -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt -c constraints.txt
 ```
 
 - Fill in `settings.py` locally, start memcached, export SMTP credentials, and run:
@@ -74,10 +75,13 @@ python3 main.py
 - `make build` compiles the Python modules.
 - `make check` cleans generated Python artifacts, then runs lint, test, and build.
 - The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
-- Pinned `ubuntu-24.04` GitHub Actions installs `requirements.txt`, runs
+- Pinned `ubuntu-24.04` GitHub Actions installs `requirements.txt` through the
+  reviewed versions in `constraints.txt`, runs
   `pip check`, and executes `make check` on Python 3.12. Hosted tests remain
   offline and do not scrape target sites, connect to memcached, authenticate to
   SMTP, or send email.
+- The constraints freeze the reviewed direct and transitive versions, but they
+  do not authenticate downloaded artifacts with hashes.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 

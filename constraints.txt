@@ -1,0 +1,6 @@
+# Reviewed CI resolution for Python 3.12.
+html5lib==1.1
+mechanize==0.4.10
+python-memcached==1.62
+six==1.17.0
+webencodings==0.5.1

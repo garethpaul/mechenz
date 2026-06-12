@@ -15,6 +15,7 @@ REQUIRED = [
     "README.md",
     "SECURITY.md",
     "VISION.md",
+    "constraints.txt",
     "requirements.txt",
     "settings.py.example",
     "docs/plans/2026-06-08-mechenz-baseline.md",
@@ -30,6 +31,7 @@ REQUIRED = [
     "docs/plans/2026-06-10-scrape-encoding-validation.md",
     "docs/plans/2026-06-10-hosted-python-validation.md",
     "docs/plans/2026-06-10-smtp-numeric-bounds.md",
+    "docs/plans/2026-06-12-python-dependency-constraints.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -90,6 +92,9 @@ def main() -> int:
     encoding_plan = (ROOT / "docs/plans/2026-06-10-scrape-encoding-validation.md").read_text(encoding="utf-8")
     hosted_validation_plan = (ROOT / "docs/plans/2026-06-10-hosted-python-validation.md").read_text(encoding="utf-8")
     numeric_bounds_plan = (ROOT / "docs/plans/2026-06-10-smtp-numeric-bounds.md").read_text(encoding="utf-8")
+    constraints_plan = (ROOT / "docs/plans/2026-06-12-python-dependency-constraints.md").read_text(encoding="utf-8")
+    constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
+    requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
 
     numeric_bounds_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", numeric_bounds_plan)
@@ -97,6 +102,28 @@ def main() -> int:
     numeric_bounds_verification = markdown_section(
         numeric_bounds_plan, "Verification Completed"
     )
+    constraints_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", constraints_plan)
+    constraints_work = markdown_section(constraints_plan, "Work Completed")
+    constraints_verification = markdown_section(
+        constraints_plan, "Verification Completed"
+    )
+    expected_constraints = """# Reviewed CI resolution for Python 3.12.
+html5lib==1.1
+mechanize==0.4.10
+python-memcached==1.62
+six==1.17.0
+webencodings==0.5.1
+"""
+    expected_requirements = """mechanize>=0.4.10,<0.5
+python-memcached>=1.59,<2
+"""
+    constrained_install = (
+        "python -m pip install --requirement requirements.txt "
+        "--constraint constraints.txt"
+    )
+    dependency_cache = """          cache-dependency-path: |
+            requirements.txt
+            constraints.txt"""
 
     checks = [
         ("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
@@ -108,11 +135,34 @@ def main() -> int:
          and "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow
          and "actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405" in workflow
          and 'python-version: "3.12"' in workflow
-         and "cache-dependency-path: requirements.txt" in workflow
-         and "python -m pip install --requirement requirements.txt" in workflow
+         and workflow.count(dependency_cache) == 1
+         and workflow.count(constrained_install) == 1
          and "python -m pip check" in workflow
          and "run: make check" in workflow,
          "Check workflow must stay pinned, read-only, bounded, and dependency-aware"),
+        (requirements == expected_requirements,
+         "requirements.txt must preserve the reviewed direct compatibility ranges"),
+        (constraints == expected_constraints,
+         "constraints.txt must match the reviewed Python 3.12 graph exactly"),
+        ("constraints.txt" in readme
+         and "constraints.txt" in security
+         and "constraints" in changes.lower()
+         and "do not authenticate" in readme.lower()
+         and "not artifact authentication" in security.lower(),
+         "docs must describe constrained resolution and its hash boundary"),
+        (constraints_status == ["completed"] and bool(constraints_work),
+         "dependency constraints plan must record one completed status and completed work"),
+        (bool(constraints_verification)
+         and all(evidence in constraints_verification for evidence in [
+             "Official PyPI metadata",
+             "Python 3.12 resolver dry run",
+             "mechanize 0.4.10",
+             "python-memcached 1.62",
+             "html5lib 1.1",
+             "six 1.17.0",
+             "webencodings 0.5.1",
+         ]),
+         "dependency constraints plan must preserve reviewed resolution evidence"),
         (".PHONY: build check clean compile fmt lint static-check test" in makefile
          and "check: clean lint test build" in makefile
          and "lint: static-check" in makefile

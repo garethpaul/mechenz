@@ -26,7 +26,9 @@ Helpful reports include:
 
 - This repository appears to be a public sample, documentation, or utility project. The active security scope is the code and documentation on the default branch.
 - Review found authentication, token, or session-related code paths; changes in those areas should receive security-focused review before merge.
-- Dependency manifest detected: requirements.txt. Live-run dependency updates should preserve the offline `make check` path.
+- Dependency manifests detected: `requirements.txt` and `constraints.txt`.
+  Live-run dependency updates should preserve the compatibility ranges, the
+  reviewed exact CI graph, and the offline `make check` path.
 - Run `make check` before changing scraper parsing, SMTP delivery, dependency metadata, or settings documentation.
 - The pinned Linux workflow installs declared dependencies and runs offline
   tests without target-site access, memcached connections, SMTP credentials,
@@ -53,6 +55,10 @@ For this project, reports should also describe whether scrape settings validatio
 ## Dependency and Supply Chain Security
 
 Dependency updates should come from trusted package managers and should keep manifests in sync when they exist. Do not commit credentials, private keys, tokens, generated secrets, scraped private data, or machine-local configuration. If a vulnerability depends on a compromised package, typosquatting risk, insecure transitive dependency, or unsafe build step, include the package name, affected version, and the path through which it is used.
+
+GitHub Actions applies `constraints.txt` to freeze the reviewed Python 3.12
+resolution. This reduces resolver drift but is not artifact authentication;
+the constraints file does not contain package hashes.
 
 ## Safe Research Guidelines
 
