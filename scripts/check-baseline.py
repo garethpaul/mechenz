@@ -32,6 +32,7 @@ REQUIRED = [
     "docs/plans/2026-06-10-hosted-python-validation.md",
     "docs/plans/2026-06-10-smtp-numeric-bounds.md",
     "docs/plans/2026-06-12-python-dependency-constraints.md",
+    "docs/plans/2026-06-12-checkout-credential-boundary.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -93,9 +94,16 @@ def main() -> int:
     hosted_validation_plan = (ROOT / "docs/plans/2026-06-10-hosted-python-validation.md").read_text(encoding="utf-8")
     numeric_bounds_plan = (ROOT / "docs/plans/2026-06-10-smtp-numeric-bounds.md").read_text(encoding="utf-8")
     constraints_plan = (ROOT / "docs/plans/2026-06-12-python-dependency-constraints.md").read_text(encoding="utf-8")
+    checkout_plan = (
+        ROOT / "docs/plans/2026-06-12-checkout-credential-boundary.md"
+    ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
+    workflow_files = [
+        *sorted((ROOT / ".github/workflows").glob("*.yml")),
+        *sorted((ROOT / ".github/workflows").glob("*.yaml")),
+    ]
 
     numeric_bounds_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", numeric_bounds_plan)
     numeric_bounds_work = markdown_section(numeric_bounds_plan, "Work Completed")
@@ -106,6 +114,11 @@ def main() -> int:
     constraints_work = markdown_section(constraints_plan, "Work Completed")
     constraints_verification = markdown_section(
         constraints_plan, "Verification Completed"
+    )
+    checkout_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", checkout_plan)
+    checkout_work = markdown_section(checkout_plan, "Work Completed")
+    checkout_verification = markdown_section(
+        checkout_plan, "Verification Completed"
     )
     expected_constraints = """# Reviewed CI resolution for Python 3.12.
 html5lib==1.1
@@ -124,6 +137,19 @@ python-memcached>=1.59,<2
     dependency_cache = """          cache-dependency-path: |
             requirements.txt
             constraints.txt"""
+    checkout_action = (
+        "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10"
+    )
+    checkout_blocks = re.findall(
+        rf"(?m)^(?P<indent> *)- +uses: +{re.escape(checkout_action)}[^\n]*\n"
+        rf"(?P=indent)  with:\n"
+        rf"(?P=indent)    persist-credentials: +false *$",
+        workflow,
+    )
+    checkout_actions = re.findall(
+        r"(?m)^\s*-\s+uses:\s+actions/checkout@",
+        workflow,
+    )
 
     checks = [
         ("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
@@ -132,7 +158,7 @@ python-memcached>=1.59,<2
          and "cancel-in-progress: true" in workflow
          and "runs-on: ubuntu-24.04" in workflow
          and "timeout-minutes: 10" in workflow
-         and "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow
+         and checkout_action in workflow
          and "actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405" in workflow
          and 'python-version: "3.12"' in workflow
          and workflow.count(dependency_cache) == 1
@@ -140,6 +166,22 @@ python-memcached>=1.59,<2
          and "python -m pip check" in workflow
          and "run: make check" in workflow,
          "Check workflow must stay pinned, read-only, bounded, and dependency-aware"),
+        (len(workflow_files) == 1
+         and workflow.count("permissions:") == 1
+         and workflow.count("contents: read") == 1
+         and not re.search(r"(?m)^\s*[A-Za-z-]+:\s*write\s*$", workflow)
+         and len(checkout_actions) == 1
+         and workflow.count(checkout_action) == 1
+         and len(checkout_blocks) == 1
+         and workflow.count("persist-credentials: false") == 1
+         and "persist-credentials: true" not in workflow,
+         "Check workflow must keep one read-only permission block and one "
+         "pinned, credential-free checkout"),
+        (checkout_status == ["completed"]
+         and bool(checkout_work)
+         and "make check" in checkout_verification,
+         "checkout credential plan must record one completed status, completed "
+         "work, and make check verification"),
         (requirements == expected_requirements,
          "requirements.txt must preserve the reviewed direct compatibility ranges"),
         (constraints == expected_constraints,

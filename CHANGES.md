@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-12
+
+- Stopped the hosted checkout from persisting its credential and added an exact
+  static contract for the sole workflow, permissions, and checkout step.
+
 ## 2026-06-10
 
 - Added a reviewed five-package Python 3.12 constraints graph for hosted

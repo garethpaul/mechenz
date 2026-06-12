@@ -77,9 +77,9 @@ python3 main.py
 - The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
 - Pinned `ubuntu-24.04` GitHub Actions installs `requirements.txt` through the
   reviewed versions in `constraints.txt`, runs
-  `pip check`, and executes `make check` on Python 3.12. Hosted tests remain
-  offline and do not scrape target sites, connect to memcached, authenticate to
-  SMTP, or send email.
+  `pip check`, and executes `make check` on Python 3.12 through a read-only,
+  credential-free checkout. Hosted tests remain offline and do not scrape
+  target sites, connect to memcached, authenticate to SMTP, or send email.
 - The constraints freeze the reviewed direct and transitive versions, but they
   do not authenticate downloaded artifacts with hashes.
 

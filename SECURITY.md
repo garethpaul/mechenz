@@ -30,9 +30,10 @@ Helpful reports include:
   Live-run dependency updates should preserve the compatibility ranges, the
   reviewed exact CI graph, and the offline `make check` path.
 - Run `make check` before changing scraper parsing, SMTP delivery, dependency metadata, or settings documentation.
-- The pinned Linux workflow installs declared dependencies and runs offline
-  tests without target-site access, memcached connections, SMTP credentials,
-  SMTP authentication, or email delivery.
+- The pinned Linux workflow uses a read-only, credential-free checkout,
+  installs declared dependencies, and runs offline tests without target-site
+  access, memcached connections, SMTP credentials, SMTP authentication, or
+  email delivery.
 - Prefer `SMTP_LOGIN` and `SMTP_PASSWORD` environment variables for SMTP credentials. Keep `settings.py`, SMTP credentials, target-site secrets, scraped private data, logs, and `.env` files out of git.
 - Scrape settings validation should reject blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
 - Scrape URL validation should reject malformed or non-HTTP(S) target URLs before mechanize opens them.

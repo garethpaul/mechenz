@@ -37,8 +37,9 @@ Priority:
 - Keep offline tests independent of live scraping, memcache, Gmail, and local credentials
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
-- Keep pinned, read-only Python 3.12 hosted validation covering dependency
-  installation, `pip check`, and offline tests without live integrations
+- Keep pinned, read-only, credential-free Python 3.12 hosted validation
+  covering dependency installation, `pip check`, and offline tests without
+  live integrations
 - Maintain security policy for the sample
 
 Next priorities:
