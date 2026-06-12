@@ -74,6 +74,8 @@ python3 main.py
 - `make build` compiles the Python modules.
 - `make check` cleans generated Python artifacts, then runs lint, test, and build.
 - The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
+- GitHub Actions runs the same `make check` baseline with Python 3.12 for
+  pushes and pull requests.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 
@@ -113,6 +115,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - See `docs/plans/2026-06-09-mail-settings-validation.md` for the SMTP numeric setting validation guard.
 - See `docs/plans/2026-06-09-scrape-url-validation.md` for the scrape URL validation guard.
 - See `docs/plans/2026-06-10-scrape-encoding-validation.md` for the scrape encoding validation guard.
+- See `docs/plans/2026-06-10-ci-baseline.md` for the GitHub Actions `make
+  check` baseline.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 

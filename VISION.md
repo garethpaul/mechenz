@@ -18,6 +18,8 @@ artifact cleanup, action parsing, email body generation, cache comparison,
 settings validation, scrape settings validation, notification delivery, SMTP
 environment configuration, SMTP numeric setting validation, and SMTP TLS/login
 setup, and SMTP header validation.
+GitHub Actions runs the same `make check` baseline with Python 3.12 for pushes
+and pull requests.
 
 The current focus is:
 
@@ -36,6 +38,7 @@ Priority:
 - Keep offline tests independent of live scraping, memcache, Gmail, and local credentials
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
+- Keep GitHub Actions aligned with the local Python verification baseline
 - Maintain security policy for the sample
 
 Next priorities:

@@ -4,6 +4,8 @@
 
 - Added scrape encoding validation so unknown response codecs fail before live
   scraping without echoing raw configuration values.
+- Added a GitHub Actions workflow that runs the Python 3.12 `make check`
+  baseline for pushes and pull requests.
 
 ## 2026-06-09
 

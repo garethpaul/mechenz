@@ -9,6 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = [
     ".gitignore",
+    ".github/workflows/check.yml",
     "CHANGES.md",
     "Makefile",
     "README.md",
@@ -27,6 +28,7 @@ REQUIRED = [
     "docs/plans/2026-06-09-scrape-url-validation.md",
     "docs/plans/2026-06-09-smtp-header-validation.md",
     "docs/plans/2026-06-10-scrape-encoding-validation.md",
+    "docs/plans/2026-06-10-ci-baseline.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -69,6 +71,7 @@ def main() -> int:
     security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
     changes = (ROOT / "CHANGES.md").read_text(encoding="utf-8")
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    ci_workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
     settings_plan = (ROOT / "docs/plans/2026-06-08-scrape-settings-validation.md").read_text(encoding="utf-8")
     mail_plan = (ROOT / "docs/plans/2026-06-09-mail-settings-validation.md").read_text(encoding="utf-8")
     recipient_plan = (ROOT / "docs/plans/2026-06-09-mail-recipient-normalization.md").read_text(encoding="utf-8")
@@ -77,6 +80,7 @@ def main() -> int:
     url_plan = (ROOT / "docs/plans/2026-06-09-scrape-url-validation.md").read_text(encoding="utf-8")
     header_plan = (ROOT / "docs/plans/2026-06-09-smtp-header-validation.md").read_text(encoding="utf-8")
     encoding_plan = (ROOT / "docs/plans/2026-06-10-scrape-encoding-validation.md").read_text(encoding="utf-8")
+    ci_plan = (ROOT / "docs/plans/2026-06-10-ci-baseline.md").read_text(encoding="utf-8")
 
     checks = [
         (".PHONY: build check clean compile fmt lint static-check test" in makefile
@@ -90,6 +94,15 @@ def main() -> int:
          "VISION must document standard Make gates"),
         ("make lint" in changes and "make test" in changes and "make build" in changes,
          "CHANGES must record standard Make gates"),
+        ("GitHub Actions" in readme and "GitHub Actions" in vision
+         and "GitHub Actions" in security and "GitHub Actions" in changes,
+         "docs must mention the hosted GitHub Actions baseline"),
+        ("actions/setup-python@v5" in ci_workflow
+         and 'python-version: "3.12"' in ci_workflow
+         and "make check" in ci_workflow,
+         "GitHub Actions workflow must install Python 3.12 and run make check"),
+        ("status: completed" in ci_plan and "make check" in ci_plan,
+         "CI baseline plan must be marked completed with make check verification"),
         ("status: completed" in make_gates_plan,
          "Make gate targets plan must be marked completed"),
         ("empty required settings" in main_source and "required_values" in main_source,
