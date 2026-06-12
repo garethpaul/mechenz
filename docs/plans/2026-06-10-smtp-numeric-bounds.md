@@ -17,14 +17,23 @@ leave notification attempts effectively unbounded.
 - Add offline boundary tests and static mutation guardrails.
 - Document the runtime limits without changing SMTP credentials or delivery.
 
-## Verification
+## Verification Completed
 
-- `make lint`
-- `make test`
-- `make build`
-- `make check`
-- mutation checks for the port and timeout upper bounds
-- `git diff --check`
+- Local `make check`, `make lint`, `make test`, and `make build` passed,
+  including 23 offline unit tests and Python source compilation.
+- `python3 -m py_compile scripts/check-baseline.py` and `git diff --check`
+  passed.
+- Hostile mutations changing the plan status, inserting an unfinished-work
+  marker, falsifying a run ID, removing the SMTP port ceiling, or removing the
+  finite timeout check were rejected.
+- The main-branch push Check run `27287526596` completed successfully for
+  commit `d4555441451142239ee680c722adddd9d98f7f0a`.
+- The CodeQL setup run `27402325084` completed successfully for commit
+  `d4555441451142239ee680c722adddd9d98f7f0a`.
+- SMTP parsing preserves `maximum=65535`, `maximum=300.0`, and
+  `math.isfinite(parsed)`, with
+  `test_load_mail_settings_rejects_port_outside_tcp_range` and
+  `test_load_mail_settings_rejects_unbounded_timeout` covering the boundaries.
 
 ## Work Completed
 

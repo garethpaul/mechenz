@@ -40,6 +40,14 @@ SECRET_PATTERNS = [
 ]
 
 
+def markdown_section(text: str, heading: str) -> str:
+    match = re.search(
+        rf"(?ms)^## {re.escape(heading)}\s*$\n(.*?)(?=^## |\Z)",
+        text,
+    )
+    return match.group(1).strip() if match else ""
+
+
 def main() -> int:
     missing = [path for path in REQUIRED if not (ROOT / path).exists()]
     if missing:
@@ -83,6 +91,12 @@ def main() -> int:
     hosted_validation_plan = (ROOT / "docs/plans/2026-06-10-hosted-python-validation.md").read_text(encoding="utf-8")
     numeric_bounds_plan = (ROOT / "docs/plans/2026-06-10-smtp-numeric-bounds.md").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
+
+    numeric_bounds_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", numeric_bounds_plan)
+    numeric_bounds_work = markdown_section(numeric_bounds_plan, "Work Completed")
+    numeric_bounds_verification = markdown_section(
+        numeric_bounds_plan, "Verification Completed"
+    )
 
     checks = [
         ("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
@@ -173,10 +187,28 @@ def main() -> int:
          "CHANGES must record SMTP numeric setting validation"),
         ("status: completed" in mail_plan,
          "SMTP numeric setting validation plan must be marked completed"),
-        ("status: completed" in numeric_bounds_plan
-         and "65535" in numeric_bounds_plan
-         and "300 seconds" in numeric_bounds_plan,
-         "SMTP numeric bounds plan must be completed and document both limits"),
+        (numeric_bounds_status == ["completed"] and bool(numeric_bounds_work),
+         "SMTP numeric bounds plan must record one completed status and completed work"),
+        (bool(numeric_bounds_verification)
+         and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", numeric_bounds_verification),
+         "SMTP numeric bounds plan must record finished verification without pending markers"),
+        (all(evidence in numeric_bounds_verification for evidence in [
+            "make check",
+            "make lint",
+            "make test",
+            "make build",
+            "python3 -m py_compile scripts/check-baseline.py",
+            "git diff --check",
+            "27287526596",
+            "27402325084",
+            "d4555441451142239ee680c722adddd9d98f7f0a",
+            "maximum=65535",
+            "maximum=300.0",
+            "math.isfinite(parsed)",
+            "test_load_mail_settings_rejects_port_outside_tcp_range",
+            "test_load_mail_settings_rejects_unbounded_timeout",
+         ]),
+         "SMTP numeric bounds plan must preserve exact completed verification evidence"),
         ("str(address).strip()" in mail_source and "if not recipients" in mail_source,
          "RoyalMail must normalize and reject blank SMTP recipients"),
         ("test_send_mail_normalizes_recipients" in test_mail
