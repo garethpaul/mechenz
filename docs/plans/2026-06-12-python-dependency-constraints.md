@@ -56,6 +56,9 @@ sample's direct compatibility declarations.
   evidence.
 - `python3 -m py_compile scripts/check-baseline.py` and `git diff --check`
   passed.
-- Exact-head hosted run identifiers remain pending until the implementation
-  commit is pushed; delivery is not final until canonical events and CodeQL
-  pass.
+- Implementation head `63e91f82cbebd09e26770d820c942f7f03814c93`
+  passed push Check run `27437261487`, pull-request Check run `27437266988`,
+  and CodeQL run `27437265086` for Actions and Python.
+- Pull request #6 was open, clean, and mergeable at that implementation head
+  with all five exact-head checks successful and zero open PR-scoped
+  code-scanning alerts.

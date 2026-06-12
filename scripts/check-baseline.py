@@ -153,6 +153,10 @@ python-memcached>=1.59,<2
         (constraints_status == ["completed"] and bool(constraints_work),
          "dependency constraints plan must record one completed status and completed work"),
         (bool(constraints_verification)
+         and not re.search(
+             r"(?i)\b(?:pending|todo|tbd|not run|will be recorded)\b",
+             constraints_verification,
+         )
          and all(evidence in constraints_verification for evidence in [
              "Official PyPI metadata",
              "Python 3.12 resolver dry run",
@@ -161,8 +165,14 @@ python-memcached>=1.59,<2
              "html5lib 1.1",
              "six 1.17.0",
              "webencodings 0.5.1",
+             "63e91f82cbebd09e26770d820c942f7f03814c93",
+             "27437261487",
+             "27437266988",
+             "27437265086",
+             "all five exact-head checks successful",
+             "zero open PR-scoped",
          ]),
-         "dependency constraints plan must preserve reviewed resolution evidence"),
+         "dependency constraints plan must preserve finished exact-head verification evidence"),
         (".PHONY: build check clean compile fmt lint static-check test" in makefile
          and "check: clean lint test build" in makefile
          and "lint: static-check" in makefile
