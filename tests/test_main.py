@@ -28,6 +28,26 @@ class MainTests(unittest.TestCase):
 
         self.assertEqual(main.extract_actions(html), ["First", "Second"])
 
+    def test_extract_actions_keeps_action_open_across_nested_div(self):
+        html = """
+        <div class="action">
+          <div class="metadata">Metadata</div>
+          <span>Expected</span>
+        </div>
+        """
+
+        self.assertEqual(main.extract_actions(html), ["Expected"])
+
+    def test_extract_actions_collects_nested_markup_inside_first_span(self):
+        html = """
+        <div class="action">
+          <span>Expected <strong>nested</strong> value</span>
+          <span>Ignored</span>
+        </div>
+        """
+
+        self.assertEqual(main.extract_actions(html), ["Expected nested value"])
+
     def test_notify_if_changed_skips_duplicate_cache_value(self):
         sent = []
         cache = FakeCache(["First"])

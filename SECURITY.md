@@ -38,6 +38,8 @@ Helpful reports include:
 - Scrape settings validation should reject blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
 - Scrape URL validation should reject malformed or non-HTTP(S) target URLs before mechanize opens them.
 - Scrape encoding validation should reject unknown response codec names before live scraping without echoing raw configuration values.
+- Nested action parser depth tests should use local response fixtures so
+  container-shape regressions are detected without live scraping.
 - SMTP numeric setting validation should restrict ports to `1..65535` and
   timeouts to finite values no greater than 300 seconds without echoing raw
   configuration values.

@@ -1,6 +1,6 @@
 # Nested Action Parser Depth
 
-status: planned
+status: completed
 
 ## Context
 
@@ -21,8 +21,8 @@ The parser currently returns no actions for that response shape.
 
 - Track the complete open-element stack while an action is active so only the
   matching action container ends that action.
-- Preserve the existing contract of returning only the first non-empty span
-  from each action.
+- Preserve the existing contract of returning only the first span from each
+  action when it contains text.
 - Add focused tests for an ordinary nested container before the first span and
   nested markup inside the captured span.
 - Extend the static baseline and project documentation with the parser-depth
@@ -35,13 +35,25 @@ The parser currently returns no actions for that response shape.
   delivery.
 - Broad HTML parsing or selector-library replacement.
 
-## Planned Verification
+## Work Completed
+
+- Made active action depth account for every nested `div`, while only an
+  outer `div.action` starts a new action.
+- Added offline coverage for a nested metadata container before the first span
+  and nested inline markup within that span.
+- Extended the baseline checker and project documentation with the response
+  shape contract.
+
+## Verification Completed
 
 - `make lint`
 - `make test`
 - `make build`
 - `make check`
-- Mutation checks that reject premature action closure, flattened span text,
-  stale plan status, and missing verification evidence.
+- `python3 -m unittest discover -s tests -p 'test_main.py' -v` (13 tests)
+- `test_extract_actions_keeps_action_open_across_nested_div`
+- `test_extract_actions_collects_nested_markup_inside_first_span`
+- Mutation checks reject premature action closure, flattened span text, stale
+  plan status, and missing verification evidence.
 - `git diff --check`
-- Secret and generated-artifact inspection limited to intended paths.
+- Secret and generated-artifact inspection limited to intended paths

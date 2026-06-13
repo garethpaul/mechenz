@@ -33,6 +33,7 @@ REQUIRED = [
     "docs/plans/2026-06-10-smtp-numeric-bounds.md",
     "docs/plans/2026-06-12-python-dependency-constraints.md",
     "docs/plans/2026-06-12-checkout-credential-boundary.md",
+    "docs/plans/2026-06-13-nested-action-parser.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -97,6 +98,9 @@ def main() -> int:
     checkout_plan = (
         ROOT / "docs/plans/2026-06-12-checkout-credential-boundary.md"
     ).read_text(encoding="utf-8")
+    parser_plan = (
+        ROOT / "docs/plans/2026-06-13-nested-action-parser.md"
+    ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
@@ -120,6 +124,9 @@ def main() -> int:
     checkout_verification = markdown_section(
         checkout_plan, "Verification Completed"
     )
+    parser_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", parser_plan)
+    parser_work = markdown_section(parser_plan, "Work Completed")
+    parser_verification = markdown_section(parser_plan, "Verification Completed")
     expected_constraints = """# Reviewed CI resolution for Python 3.12.
 html5lib==1.1
 mechanize==0.4.10
@@ -182,6 +189,35 @@ python-memcached>=1.59,<2
          and "make check" in checkout_verification,
          "checkout credential plan must record one completed status, completed "
          "work, and make check verification"),
+        ('if tag == "div":' in main_source
+         and "if self._action_depth:" in main_source
+         and "self._action_depth += 1" in main_source
+         and 'elif "action" in attributes.get("class", "").split():' in main_source,
+         "ActionParser must balance ordinary nested div depth inside actions"),
+        ("test_extract_actions_keeps_action_open_across_nested_div" in test_main
+         and "test_extract_actions_collects_nested_markup_inside_first_span" in test_main
+         and "Metadata" in test_main
+         and "Expected nested value" in test_main,
+         "tests must cover nested action containers and inline span markup"),
+        ("nested action parser depth" in readme.lower()
+         and "nested action parser depth" in vision.lower()
+         and "nested action parser depth" in security.lower()
+         and "nested action parser depth" in changes.lower(),
+         "docs must record nested action parser depth protection"),
+        (parser_status == ["completed"] and bool(parser_work),
+         "nested action parser plan must record one completed status and completed work"),
+        (bool(parser_verification)
+         and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", parser_verification)
+         and all(evidence in parser_verification for evidence in [
+             "make lint",
+             "make test",
+             "make build",
+             "make check",
+             "test_extract_actions_keeps_action_open_across_nested_div",
+             "test_extract_actions_collects_nested_markup_inside_first_span",
+             "git diff --check",
+         ]),
+         "nested action parser plan must preserve completed verification evidence"),
         (requirements == expected_requirements,
          "requirements.txt must preserve the reviewed direct compatibility ranges"),
         (constraints == expected_constraints,

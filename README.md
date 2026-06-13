@@ -75,6 +75,8 @@ python3 main.py
 - `make build` compiles the Python modules.
 - `make check` cleans generated Python artifacts, then runs lint, test, and build.
 - The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
+- Action parsing keeps nested container depth balanced so an ordinary inner
+  `div` cannot hide the first span that follows it.
 - Pinned `ubuntu-24.04` GitHub Actions installs `requirements.txt` through the
   reviewed versions in `constraints.txt`, runs
   `pip check`, and executes `make check` on Python 3.12 through a read-only,
@@ -110,6 +112,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Keep scrape URL validation in place so malformed or non-HTTP(S) targets fail before mechanize opens them.
 - Keep robot setting validation in place so typos do not silently disable robot handling.
 - Keep scrape encoding validation in place so invalid response codec names fail before live scraping.
+- Keep nested action parser depth coverage in place when changing response
+  selectors or fixture shapes.
 - Keep SMTP header validation in place so sender, recipient, and subject values
   cannot inject additional mail headers.
 - Tests should use fixtures and injected fakes, not live target sites, memcache, or SMTP.
@@ -122,6 +126,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - See `docs/plans/2026-06-09-mail-settings-validation.md` for the SMTP numeric setting validation guard.
 - See `docs/plans/2026-06-09-scrape-url-validation.md` for the scrape URL validation guard.
 - See `docs/plans/2026-06-10-scrape-encoding-validation.md` for the scrape encoding validation guard.
+- See `docs/plans/2026-06-13-nested-action-parser.md` for the nested action
+  parser depth guard.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 

@@ -17,7 +17,7 @@ cover the static baseline, offline unit tests, Python compilation, generated
 artifact cleanup, action parsing, email body generation, cache comparison,
 settings validation, scrape settings validation, notification delivery, SMTP
 environment configuration, SMTP numeric setting validation, and SMTP TLS/login
-setup, and SMTP header validation.
+setup, SMTP header validation, and nested action parser depth.
 
 The current focus is:
 
@@ -28,6 +28,7 @@ Priority:
 - Keep scrape settings validation strict enough to reject blank live-run targets
 - Keep scrape URL validation strict enough to reject non-HTTP(S) live-run targets
 - Keep scrape encoding validation strict enough to reject unknown response codecs
+- Keep nested action parser depth balanced across ordinary inner containers
 - Keep SMTP ports within `1..65535`, SMTP timeouts finite and at most 300
   seconds, and validation errors free of raw configuration values
 - Keep SMTP recipient normalization before opening outbound SMTP connections
@@ -44,7 +45,7 @@ Priority:
 
 Next priorities:
 
-- Add fixture-driven tests for additional target response shapes
+- Add fixture-driven tests for additional distinct target response shapes
 - Add rate-limit and target-site access notes before changing scrape behavior
 
 Contribution rules:

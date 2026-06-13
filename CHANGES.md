@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-13
+
+- Corrected nested action parser depth so ordinary inner containers cannot
+  end an action before its first span is read.
+
 ## 2026-06-12
 
 - Stopped the hosted checkout from persisting its credential and added an exact

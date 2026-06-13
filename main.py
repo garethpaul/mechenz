@@ -38,9 +38,12 @@ class ActionParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
-        if tag == "div" and "action" in attributes.get("class", "").split():
-            self._action_depth += 1
-            self._captured_for_action = False
+        if tag == "div":
+            if self._action_depth:
+                self._action_depth += 1
+            elif "action" in attributes.get("class", "").split():
+                self._action_depth = 1
+                self._captured_for_action = False
             return
 
         if tag == "span" and self._action_depth and not self._captured_for_action:
