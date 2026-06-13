@@ -7,6 +7,32 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
+EXPECTED_MAKEFILE = """ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
+.PHONY: build check clean compile fmt lint static-check test
+
+check: clean lint test build
+
+lint: static-check
+
+test:
+\tcd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
+
+build: compile
+
+compile:
+\tcd "$(ROOT)" && python3 -c "from pathlib import Path; [compile(path.read_text(), str(path), 'exec') for path in [Path('RoyalMail.py'), Path('main.py'), *Path('tests').glob('*.py')]]"
+
+static-check:
+\tpython3 "$(ROOT)/scripts/check-baseline.py"
+
+clean:
+\tfind "$(ROOT)" -type f \\( -name '*.pyc' -o -name '*.pyo' \\) -delete
+\tfind "$(ROOT)" -type d -name '__pycache__' -prune -exec rm -rf {} +
+
+fmt:
+\tcd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
+"""
 REQUIRED = [
     ".gitignore",
     ".github/workflows/check.yml",
@@ -34,6 +60,7 @@ REQUIRED = [
     "docs/plans/2026-06-12-python-dependency-constraints.md",
     "docs/plans/2026-06-12-checkout-credential-boundary.md",
     "docs/plans/2026-06-13-nested-action-parser.md",
+    "docs/plans/2026-06-13-location-independent-make.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -100,6 +127,9 @@ def main() -> int:
     ).read_text(encoding="utf-8")
     parser_plan = (
         ROOT / "docs/plans/2026-06-13-nested-action-parser.md"
+    ).read_text(encoding="utf-8")
+    location_independent_make_plan = (
+        ROOT / "docs/plans/2026-06-13-location-independent-make.md"
     ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
@@ -251,11 +281,14 @@ python-memcached>=1.59,<2
              "zero open PR-scoped",
          ]),
          "dependency constraints plan must preserve finished exact-head verification evidence"),
-        (".PHONY: build check clean compile fmt lint static-check test" in makefile
-         and "check: clean lint test build" in makefile
-         and "lint: static-check" in makefile
-         and "build: compile" in makefile,
-         "Makefile must expose standard lint, test, build, and check gates"),
+        (makefile == EXPECTED_MAKEFILE,
+         "Makefile must exactly preserve rooted lint, test, build, check, clean, and fmt gates"),
+        ("make -f /path/to/mechenz/Makefile check" in readme,
+         "README must document location-independent Makefile invocation"),
+        ("status: completed" in location_independent_make_plan
+         and "root and external-directory" in location_independent_make_plan
+         and "eight isolated hostile mutations" in location_independent_make_plan,
+         "location-independent Make plan must record completed root, external, and mutation verification"),
         ("make lint" in readme and "make test" in readme and "make build" in readme,
          "README must document standard Make gates"),
         ("make lint" in vision and "make test" in vision and "make build" in vision,

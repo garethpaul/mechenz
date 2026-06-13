@@ -74,6 +74,9 @@ python3 main.py
 - `make test` runs `python3 -m unittest discover -s tests`.
 - `make build` compiles the Python modules.
 - `make check` cleans generated Python artifacts, then runs lint, test, and build.
+- The Make gates are location-independent. From another directory, pass the
+  checkout's Makefile by absolute path, such as
+  `make -f /path/to/mechenz/Makefile check`.
 - The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
 - Action parsing keeps nested container depth balanced so an ordinary inner
   `div` cannot hide the first span that follows it.
@@ -121,6 +124,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 ## Maintenance Notes
 
 - Run `make lint`, `make test`, `make build`, and `make check` before pushing scraper, parser, mailer, dependency, settings-template, or documentation changes.
+- Use an absolute Makefile path when running those gates outside the checkout.
 - See `docs/plans/2026-06-08-mechenz-baseline.md` for the current baseline plan.
 - See `docs/plans/2026-06-09-make-gate-targets.md` for the local gate target guardrail.
 - See `docs/plans/2026-06-09-mail-settings-validation.md` for the SMTP numeric setting validation guard.

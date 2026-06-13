@@ -2,6 +2,8 @@
 
 ## 2026-06-13
 
+- Made tests, compilation, static checks, formatting checks, and generated-file
+  cleanup resolve from the checkout for absolute Makefile invocations.
 - Corrected nested action parser depth so ordinary inner containers cannot
   end an action before its first span is read.
 
