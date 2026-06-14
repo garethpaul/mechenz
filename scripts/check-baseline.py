@@ -61,6 +61,7 @@ REQUIRED = [
     "docs/plans/2026-06-12-checkout-credential-boundary.md",
     "docs/plans/2026-06-13-nested-action-parser.md",
     "docs/plans/2026-06-13-location-independent-make.md",
+    "docs/plans/2026-06-14-scrape-request-timeout.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -130,6 +131,9 @@ def main() -> int:
     ).read_text(encoding="utf-8")
     location_independent_make_plan = (
         ROOT / "docs/plans/2026-06-13-location-independent-make.md"
+    ).read_text(encoding="utf-8")
+    scrape_timeout_plan = (
+        ROOT / "docs/plans/2026-06-14-scrape-request-timeout.md"
     ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
@@ -289,6 +293,27 @@ python-memcached>=1.59,<2
          and "root and external-directory" in location_independent_make_plan
          and "eight isolated hostile mutations" in location_independent_make_plan,
          "location-independent Make plan must record completed root, external, and mutation verification"),
+        ("SCRAPE_REQUEST_TIMEOUT = 15" in main_source
+         and main_source.count("timeout=SCRAPE_REQUEST_TIMEOUT") == 3
+         and "browser.open(browser.click(), timeout=SCRAPE_REQUEST_TIMEOUT)" in main_source
+         and "browser.submit()" not in main_source,
+         "fetch_actions must apply one finite timeout to all three mechanize opens"),
+        ("test_fetch_actions_bounds_every_network_open" in test_main
+         and "test_fetch_actions_uses_bounded_submission_response_without_result_url" in test_main
+         and test_main.count("main.SCRAPE_REQUEST_TIMEOUT") >= 3
+         and 'return "submitted-request"' in test_main
+         and 'self.assertEqual(browser.form, {"q": "value"})' in test_main
+         and "self.assertTrue(browser.robots)" in test_main,
+         "offline tests must verify bounded opens while preserving browser configuration"),
+        ("status: completed" in scrape_timeout_plan
+         and "hostile mutations" in scrape_timeout_plan
+         and "27 offline tests" in scrape_timeout_plan,
+         "scrape request timeout plan must record completed test and mutation evidence"),
+        ("scrape request timeout" in readme.lower()
+         and "scrape request timeout" in vision.lower()
+         and "scrape request timeout" in security.lower()
+         and "scrape request timeout" in changes.lower(),
+         "README, VISION, SECURITY, and CHANGES must document bounded scrape requests"),
         ("make lint" in readme and "make test" in readme and "make build" in readme,
          "README must document standard Make gates"),
         ("make lint" in vision and "make test" in vision and "make build" in vision,

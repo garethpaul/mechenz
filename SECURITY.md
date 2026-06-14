@@ -37,6 +37,8 @@ Helpful reports include:
 - Prefer `SMTP_LOGIN` and `SMTP_PASSWORD` environment variables for SMTP credentials. Keep `settings.py`, SMTP credentials, target-site secrets, scraped private data, logs, and `.env` files out of git.
 - Scrape settings validation should reject blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
 - Scrape URL validation should reject malformed or non-HTTP(S) target URLs before mechanize opens them.
+- The scrape request timeout should bound the initial page, form submission,
+  and optional result-page request so a remote endpoint cannot stall a run.
 - Scrape encoding validation should reject unknown response codec names before live scraping without echoing raw configuration values.
 - Nested action parser depth tests should use local response fixtures so
   container-shape regressions are detected without live scraping.

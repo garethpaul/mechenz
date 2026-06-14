@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-14
+
+- Added a 15-second scrape request timeout to every mechanize network open,
+  including form submission.
+
 ## 2026-06-13
 
 - Made tests, compilation, static checks, formatting checks, and generated-file

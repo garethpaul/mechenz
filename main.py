@@ -13,6 +13,8 @@ from urllib.parse import urlparse
 
 import RoyalMail
 
+SCRAPE_REQUEST_TIMEOUT = 15
+
 
 @dataclass(frozen=True)
 class ScrapeSettings:
@@ -117,13 +119,13 @@ def fetch_actions(settings: ScrapeSettings, browser_factory=None) -> list[str]:
         ("Referer", settings.fake_referer),
     ]
     browser.set_handle_robots(settings.respect_robots)
-    browser.open(settings.site)
+    browser.open(settings.site, timeout=SCRAPE_REQUEST_TIMEOUT)
     browser.select_form(nr=0)
     for key, value in settings.form.items():
         browser.form[key] = value
-    response = browser.submit()
+    response = browser.open(browser.click(), timeout=SCRAPE_REQUEST_TIMEOUT)
     if settings.form_url:
-        response = browser.open(settings.form_url)
+        response = browser.open(settings.form_url, timeout=SCRAPE_REQUEST_TIMEOUT)
     return extract_actions(response.read(), encoding=settings.encoding)
 
 

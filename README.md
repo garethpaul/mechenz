@@ -96,6 +96,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Use `settings.py.example` only as a placeholder template with fake values.
 - Scrape settings validation rejects blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
 - Scrape URL validation rejects non-HTTP(S) target and result URLs before a live run.
+- A 15-second scrape request timeout bounds the initial page, form submission,
+  and optional result-page fetch.
 - SMTP numeric setting validation restricts ports to `1..65535` and timeouts to
   finite values no greater than 300 seconds without echoing raw configuration.
 - SMTP recipient normalization strips recipient addresses and rejects all-blank recipient lists before opening SMTP connections.

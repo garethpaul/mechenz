@@ -18,7 +18,80 @@ class FakeCache:
         self.value = value
 
 
+class FakeResponse:
+    def read(self):
+        return b'<div class="action"><span>Expected</span></div>'
+
+
+class FakeBrowser:
+    def __init__(self):
+        self.opens = []
+        self.form = {}
+
+    def set_handle_robots(self, value):
+        self.robots = value
+
+    def open(self, target, timeout):
+        self.opens.append((target, timeout))
+        return FakeResponse()
+
+    def select_form(self, nr):
+        self.form_number = nr
+
+    def click(self):
+        return "submitted-request"
+
+
 class MainTests(unittest.TestCase):
+    def test_fetch_actions_bounds_every_network_open(self):
+        browser = FakeBrowser()
+        settings = main.ScrapeSettings(
+            name="sample",
+            recipient="to@example.com",
+            site="https://example.com",
+            form_url="https://example.com/results",
+            form={"q": "value"},
+            fake_user_agent="agent",
+            fake_referer="referer",
+        )
+
+        actions = main.fetch_actions(settings, browser_factory=lambda: browser)
+
+        self.assertEqual(actions, ["Expected"])
+        self.assertEqual(browser.opens, [
+            ("https://example.com", main.SCRAPE_REQUEST_TIMEOUT),
+            ("submitted-request", main.SCRAPE_REQUEST_TIMEOUT),
+            ("https://example.com/results", main.SCRAPE_REQUEST_TIMEOUT),
+        ])
+        self.assertEqual(browser.form, {"q": "value"})
+        self.assertEqual(browser.form_number, 0)
+        self.assertTrue(browser.robots)
+        self.assertEqual(browser.addheaders, [
+            ("User-agent", "agent"),
+            ("Referer", "referer"),
+        ])
+
+    def test_fetch_actions_uses_bounded_submission_response_without_result_url(self):
+        browser = FakeBrowser()
+        settings = main.ScrapeSettings(
+            name="sample",
+            recipient="to@example.com",
+            site="https://example.com",
+            form_url="",
+            form={},
+            fake_user_agent="agent",
+            fake_referer="referer",
+        )
+
+        self.assertEqual(
+            main.fetch_actions(settings, browser_factory=lambda: browser),
+            ["Expected"],
+        )
+        self.assertEqual(browser.opens, [
+            ("https://example.com", main.SCRAPE_REQUEST_TIMEOUT),
+            ("submitted-request", main.SCRAPE_REQUEST_TIMEOUT),
+        ])
+
     def test_extract_actions_reads_first_span_from_each_action(self):
         html = """
         <div class="action"><span>First</span><span>Ignored</span></div>
