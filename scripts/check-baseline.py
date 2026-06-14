@@ -62,6 +62,7 @@ REQUIRED = [
     "docs/plans/2026-06-13-nested-action-parser.md",
     "docs/plans/2026-06-13-location-independent-make.md",
     "docs/plans/2026-06-14-scrape-request-timeout.md",
+    "docs/plans/2026-06-14-memcache-server-normalization.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -135,6 +136,9 @@ def main() -> int:
     scrape_timeout_plan = (
         ROOT / "docs/plans/2026-06-14-scrape-request-timeout.md"
     ).read_text(encoding="utf-8")
+    memcache_plan = (
+        ROOT / "docs/plans/2026-06-14-memcache-server-normalization.md"
+    ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
@@ -161,6 +165,9 @@ def main() -> int:
     parser_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", parser_plan)
     parser_work = markdown_section(parser_plan, "Work Completed")
     parser_verification = markdown_section(parser_plan, "Verification Completed")
+    memcache_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", memcache_plan)
+    memcache_verification = markdown_section(memcache_plan, "Verification Completed")
+    memcache_verification_text = " ".join(memcache_verification.split())
     expected_constraints = """# Reviewed CI resolution for Python 3.12.
 html5lib==1.1
 mechanize==0.4.10
@@ -305,6 +312,32 @@ python-memcached>=1.59,<2
          and 'self.assertEqual(browser.form, {"q": "value"})' in test_main
          and "self.assertTrue(browser.robots)" in test_main,
          "offline tests must verify bounded opens while preserving browser configuration"),
+        ("def _normalize_memcache_servers(value) -> list[str]:" in main_source
+         and "candidates = [value] if isinstance(value, str) else value" in main_source
+         and "not isinstance(candidates, Sequence)" in main_source
+         and "isinstance(candidates, (bytes, bytearray))" in main_source
+         and "not server.strip()" in main_source
+         and "return [server.strip() for server in candidates]" in main_source
+         and main_source.find("servers = _normalize_memcache_servers(configured_servers)")
+             < main_source.find('memcache = importlib.import_module("memcache")'),
+         "create_cache must normalize and validate memcache endpoints before client import"),
+        ("test_create_cache_treats_single_server_string_as_one_endpoint" in test_main
+         and "test_create_cache_normalizes_server_sequence" in test_main
+         and "test_create_cache_uses_nonblank_environment_override" in test_main
+         and "test_create_cache_ignores_blank_environment_override" in test_main
+         and "test_create_cache_rejects_blank_or_unsupported_server_settings" in test_main,
+         "tests must cover memcache endpoint normalization and rejection"),
+        ("memcache server normalization" in readme.lower()
+         and "memcache server normalization" in vision.lower()
+         and "memcache server normalization" in security.lower()
+         and "memcache server normalization" in changes.lower(),
+         "project guidance must document memcache server normalization"),
+        (memcache_status == ["completed"]
+         and "all four Make gates passed" in memcache_verification_text
+         and "external directory" in memcache_verification_text
+         and "Six isolated hostile mutations were rejected" in memcache_verification_text
+         and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", memcache_verification),
+         "memcache server normalization plan must record completed status and actual verification"),
         ("status: completed" in scrape_timeout_plan
          and "hostile mutations" in scrape_timeout_plan
          and "27 offline tests" in scrape_timeout_plan,

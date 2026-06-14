@@ -2,6 +2,8 @@
 
 ## 2026-06-14
 
+- Added memcache server normalization so single strings remain one endpoint and
+  blank or unsupported collections fail before client construction.
 - Added a 15-second scrape request timeout to every mechanize network open,
   including form submission.
 

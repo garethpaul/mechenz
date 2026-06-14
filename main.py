@@ -185,9 +185,12 @@ def load_settings_module():
 
 
 def create_cache(env: Mapping[str, str] = os.environ, settings_module=None):
-    memcache = importlib.import_module("memcache")
     server = env.get("MEMCACHE_SERVER")
-    servers = [server] if server else list(getattr(settings_module, "memcache_servers", ["127.0.0.1:11211"]))
+    configured_servers = server if server is not None and str(server).strip() else getattr(
+        settings_module, "memcache_servers", ["127.0.0.1:11211"]
+    )
+    servers = _normalize_memcache_servers(configured_servers)
+    memcache = importlib.import_module("memcache")
     return memcache.Client(servers, debug=0)
 
 
@@ -234,6 +237,17 @@ def _parse_bool_setting(name: str, value, default: bool = False) -> bool:
     if normalized in {"0", "false", "f", "no", "n", "off"}:
         return False
     raise ValueError(f"invalid {name}")
+
+
+def _normalize_memcache_servers(value) -> list[str]:
+    candidates = [value] if isinstance(value, str) else value
+    if not isinstance(candidates, Sequence) or isinstance(candidates, (bytes, bytearray)):
+        raise ValueError("memcache_servers must be a string or sequence of strings")
+
+    if not candidates or any(not isinstance(server, str) or not server.strip() for server in candidates):
+        raise ValueError("memcache_servers must contain non-empty strings")
+
+    return [server.strip() for server in candidates]
 
 
 def _valid_http_url(value: str) -> bool:

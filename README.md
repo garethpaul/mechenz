@@ -98,6 +98,9 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Scrape URL validation rejects non-HTTP(S) target and result URLs before a live run.
 - A 15-second scrape request timeout bounds the initial page, form submission,
   and optional result-page fetch.
+- Memcache server normalization accepts one endpoint or a nonblank endpoint
+  sequence, trims whitespace, and rejects malformed configuration before the
+  optional client dependency is imported.
 - SMTP numeric setting validation restricts ports to `1..65535` and timeouts to
   finite values no greater than 300 seconds without echoing raw configuration.
 - SMTP recipient normalization strips recipient addresses and rejects all-blank recipient lists before opening SMTP connections.

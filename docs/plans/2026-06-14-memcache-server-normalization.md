@@ -1,6 +1,6 @@
 # Memcache Server Normalization
 
-Status: planned
+Status: completed
 
 ## Problem
 
@@ -43,3 +43,17 @@ validation boundary.
 - This validates configuration shape and nonblank values only; it does not
   resolve hosts, open sockets, or prove memcache availability.
 - The stacked base PR must remain available and merge before this change.
+
+## Verification Completed
+
+- The focused `test_main.py` discovery run passed 20 tests; all four Make gates
+  passed 32 offline tests from the checkout and an external directory.
+- Six isolated hostile mutations were rejected: character splitting, blank
+  endpoint acceptance, unsupported mapping acceptance, client import before
+  validation, stale plan status, and missing maintenance guidance.
+- Diff, intended-path, generated-artifact, conflict-marker, and secret-pattern
+  audits passed. The shared host `pip check` remains red for the unrelated
+  global `virtualenv 20.24.6` / `platformdirs 4.10.0` conflict; repository CI
+  installs the reviewed constraints graph in an isolated runner.
+- No target site, memcache server, SMTP server, or other live integration was
+  contacted.

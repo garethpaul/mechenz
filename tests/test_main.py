@@ -1,6 +1,7 @@
 from datetime import date
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 import main
 
@@ -43,6 +44,50 @@ class FakeBrowser:
 
 
 class MainTests(unittest.TestCase):
+    def test_create_cache_treats_single_server_string_as_one_endpoint(self):
+        memcache = SimpleNamespace(Client=lambda servers, debug: (servers, debug))
+        settings = SimpleNamespace(memcache_servers=" cache.example:11211 ")
+
+        with patch("main.importlib.import_module", return_value=memcache):
+            client = main.create_cache({}, settings)
+
+        self.assertEqual(client, (["cache.example:11211"], 0))
+
+    def test_create_cache_normalizes_server_sequence(self):
+        memcache = SimpleNamespace(Client=lambda servers, debug: (servers, debug))
+        settings = SimpleNamespace(memcache_servers=[" cache-a:11211 ", "cache-b:11211"])
+
+        with patch("main.importlib.import_module", return_value=memcache):
+            client = main.create_cache({}, settings)
+
+        self.assertEqual(client, (["cache-a:11211", "cache-b:11211"], 0))
+
+    def test_create_cache_uses_nonblank_environment_override(self):
+        memcache = SimpleNamespace(Client=lambda servers, debug: (servers, debug))
+        settings = SimpleNamespace(memcache_servers=["configured:11211"])
+
+        with patch("main.importlib.import_module", return_value=memcache):
+            client = main.create_cache({"MEMCACHE_SERVER": " override:11211 "}, settings)
+
+        self.assertEqual(client, (["override:11211"], 0))
+
+    def test_create_cache_ignores_blank_environment_override(self):
+        memcache = SimpleNamespace(Client=lambda servers, debug: (servers, debug))
+        settings = SimpleNamespace(memcache_servers=["configured:11211"])
+
+        with patch("main.importlib.import_module", return_value=memcache):
+            client = main.create_cache({"MEMCACHE_SERVER": "  "}, settings)
+
+        self.assertEqual(client, (["configured:11211"], 0))
+
+    def test_create_cache_rejects_blank_or_unsupported_server_settings(self):
+        invalid_values = ([], ["cache:11211", " "], {"cache": "11211"}, b"cache:11211")
+
+        for value in invalid_values:
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "memcache_servers"):
+                    main.create_cache({}, SimpleNamespace(memcache_servers=value))
+
     def test_fetch_actions_bounds_every_network_open(self):
         browser = FakeBrowser()
         settings = main.ScrapeSettings(

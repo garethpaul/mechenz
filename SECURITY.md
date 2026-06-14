@@ -39,6 +39,8 @@ Helpful reports include:
 - Scrape URL validation should reject malformed or non-HTTP(S) target URLs before mechanize opens them.
 - The scrape request timeout should bound the initial page, form submission,
   and optional result-page request so a remote endpoint cannot stall a run.
+- Memcache server normalization should reject blank or unsupported endpoint
+  collections before importing or constructing the optional live client.
 - Scrape encoding validation should reject unknown response codec names before live scraping without echoing raw configuration values.
 - Nested action parser depth tests should use local response fixtures so
   container-shape regressions are detected without live scraping.
