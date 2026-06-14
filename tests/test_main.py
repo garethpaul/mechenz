@@ -20,21 +20,27 @@ class FakeCache:
 
 
 class FakeResponse:
-    def read(self):
-        return b'<div class="action"><span>Expected</span></div>'
+    def __init__(self, body=b'<div class="action"><span>Expected</span></div>'):
+        self.body = body
+        self.read_sizes = []
+
+    def read(self, size=-1):
+        self.read_sizes.append(size)
+        return self.body if size < 0 else self.body[:size]
 
 
 class FakeBrowser:
     def __init__(self):
         self.opens = []
         self.form = {}
+        self.response = FakeResponse()
 
     def set_handle_robots(self, value):
         self.robots = value
 
     def open(self, target, timeout):
         self.opens.append((target, timeout))
-        return FakeResponse()
+        return self.response
 
     def select_form(self, nr):
         self.form_number = nr
@@ -115,6 +121,7 @@ class MainTests(unittest.TestCase):
             ("User-agent", "agent"),
             ("Referer", "referer"),
         ])
+        self.assertEqual(browser.response.read_sizes, [main.MAX_SCRAPE_RESPONSE_BYTES + 1])
 
     def test_fetch_actions_uses_bounded_submission_response_without_result_url(self):
         browser = FakeBrowser()
@@ -136,6 +143,20 @@ class MainTests(unittest.TestCase):
             ("https://example.com", main.SCRAPE_REQUEST_TIMEOUT),
             ("submitted-request", main.SCRAPE_REQUEST_TIMEOUT),
         ])
+
+    def test_read_bounded_response_accepts_exact_limit(self):
+        response = FakeResponse(b"x" * main.MAX_SCRAPE_RESPONSE_BYTES)
+
+        self.assertEqual(len(main._read_bounded_response(response)), main.MAX_SCRAPE_RESPONSE_BYTES)
+        self.assertEqual(response.read_sizes, [main.MAX_SCRAPE_RESPONSE_BYTES + 1])
+
+    def test_read_bounded_response_rejects_one_byte_over_limit(self):
+        response = FakeResponse(b"x" * (main.MAX_SCRAPE_RESPONSE_BYTES + 1))
+
+        with self.assertRaisesRegex(ValueError, "configured size limit"):
+            main._read_bounded_response(response)
+
+        self.assertEqual(response.read_sizes, [main.MAX_SCRAPE_RESPONSE_BYTES + 1])
 
     def test_extract_actions_reads_first_span_from_each_action(self):
         html = """

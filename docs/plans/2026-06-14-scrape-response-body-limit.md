@@ -1,6 +1,6 @@
 # Scrape Response Body Limit
 
-status: planned
+status: completed
 
 ## Context
 
@@ -49,8 +49,24 @@ within that timeout and cause avoidable memory pressure before parsing begins.
 
 ## Work Completed
 
-Pending implementation.
+- Added a 1 MiB maximum and a bounded response reader that requests one extra
+  byte, accepts the exact boundary, and rejects larger bodies.
+- Routed the final selected response through the bounded reader before decoding
+  and action parsing without changing request, cache, or email behavior.
+- Added offline boundary tests, static contracts, and operator/security
+  guidance.
 
 ## Verification Completed
 
-Pending validation.
+- The focused response-limit tests and all 34 offline tests passed.
+- All four Make gates passed from the checkout with the broad cleanup target
+  explicitly treated as already complete, `make fmt` passed, and the same
+  non-destructive canonical check passed from an external directory through
+  the absolute Makefile path.
+- Seven isolated hostile mutations were rejected for the limit constant, read
+  size, comparison, parser ordering, boundary tests, plan status, and
+  maintenance guidance.
+- Checker compilation, constraints consistency, `git diff --check`, and exact
+  intended-path, secret-pattern, conflict-marker, generated-artifact, binary,
+  and large-file audits passed.
+- No live target, memcache, SMTP, or other external integration was contacted.

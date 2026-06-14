@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 import RoyalMail
 
 SCRAPE_REQUEST_TIMEOUT = 15
+MAX_SCRAPE_RESPONSE_BYTES = 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -126,7 +127,8 @@ def fetch_actions(settings: ScrapeSettings, browser_factory=None) -> list[str]:
     response = browser.open(browser.click(), timeout=SCRAPE_REQUEST_TIMEOUT)
     if settings.form_url:
         response = browser.open(settings.form_url, timeout=SCRAPE_REQUEST_TIMEOUT)
-    return extract_actions(response.read(), encoding=settings.encoding)
+    response_body = _read_bounded_response(response)
+    return extract_actions(response_body, encoding=settings.encoding)
 
 
 def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -> ScrapeSettings:
@@ -178,6 +180,13 @@ def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -
         respect_robots=respect_robots,
         encoding=_parse_encoding_setting("encoding", getattr(settings_module, "encoding", "utf-8")),
     )
+
+
+def _read_bounded_response(response) -> bytes:
+    body = response.read(MAX_SCRAPE_RESPONSE_BYTES + 1)
+    if len(body) > MAX_SCRAPE_RESPONSE_BYTES:
+        raise ValueError("scrape response exceeds configured size limit")
+    return body
 
 
 def load_settings_module():

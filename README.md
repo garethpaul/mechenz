@@ -98,6 +98,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Scrape URL validation rejects non-HTTP(S) target and result URLs before a live run.
 - A 15-second scrape request timeout bounds the initial page, form submission,
   and optional result-page fetch.
+- A 1 MiB scrape response body limit rejects oversized result pages before
+  decoding or action parsing.
 - Memcache server normalization accepts one endpoint or a nonblank endpoint
   sequence, trims whitespace, and rejects malformed configuration before the
   optional client dependency is imported.
@@ -120,6 +122,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Keep scrape URL validation in place so malformed or non-HTTP(S) targets fail before mechanize opens them.
 - Keep robot setting validation in place so typos do not silently disable robot handling.
 - Keep scrape encoding validation in place so invalid response codec names fail before live scraping.
+- Keep the scrape response body limit ahead of decoding and parser execution.
 - Keep nested action parser depth coverage in place when changing response
   selectors or fixture shapes.
 - Keep SMTP header validation in place so sender, recipient, and subject values

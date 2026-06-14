@@ -39,6 +39,8 @@ Helpful reports include:
 - Scrape URL validation should reject malformed or non-HTTP(S) target URLs before mechanize opens them.
 - The scrape request timeout should bound the initial page, form submission,
   and optional result-page request so a remote endpoint cannot stall a run.
+- The 1 MiB scrape response body limit should reject oversized result pages
+  before decoding or action parsing.
 - Memcache server normalization should reject blank or unsupported endpoint
   collections before importing or constructing the optional live client.
 - Scrape encoding validation should reject unknown response codec names before live scraping without echoing raw configuration values.

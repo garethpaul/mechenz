@@ -63,6 +63,7 @@ REQUIRED = [
     "docs/plans/2026-06-13-location-independent-make.md",
     "docs/plans/2026-06-14-scrape-request-timeout.md",
     "docs/plans/2026-06-14-memcache-server-normalization.md",
+    "docs/plans/2026-06-14-scrape-response-body-limit.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -139,6 +140,9 @@ def main() -> int:
     memcache_plan = (
         ROOT / "docs/plans/2026-06-14-memcache-server-normalization.md"
     ).read_text(encoding="utf-8")
+    response_limit_plan = (
+        ROOT / "docs/plans/2026-06-14-scrape-response-body-limit.md"
+    ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
@@ -168,6 +172,9 @@ def main() -> int:
     memcache_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", memcache_plan)
     memcache_verification = markdown_section(memcache_plan, "Verification Completed")
     memcache_verification_text = " ".join(memcache_verification.split())
+    response_limit_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", response_limit_plan)
+    response_limit_verification = markdown_section(response_limit_plan, "Verification Completed")
+    response_limit_verification_text = " ".join(response_limit_verification.split())
     expected_constraints = """# Reviewed CI resolution for Python 3.12.
 html5lib==1.1
 mechanize==0.4.10
@@ -347,6 +354,33 @@ python-memcached>=1.59,<2
          and "scrape request timeout" in security.lower()
          and "scrape request timeout" in changes.lower(),
          "README, VISION, SECURITY, and CHANGES must document bounded scrape requests"),
+        ("MAX_SCRAPE_RESPONSE_BYTES = 1024 * 1024" in main_source
+         and "def _read_bounded_response(response) -> bytes:" in main_source
+         and "response.read(MAX_SCRAPE_RESPONSE_BYTES + 1)" in main_source
+         and "len(body) > MAX_SCRAPE_RESPONSE_BYTES" in main_source,
+         "scrape responses must be read one byte past a fixed 1 MiB limit and rejected when oversized"),
+        (main_source.find("response_body = _read_bounded_response(response)") >= 0
+         and main_source.find("return extract_actions(response_body, encoding=settings.encoding)")
+             > main_source.find("response_body = _read_bounded_response(response)"),
+         "fetch_actions must bound the selected response before decoding and parsing"),
+        ("test_read_bounded_response_accepts_exact_limit" in test_main
+         and "test_read_bounded_response_rejects_one_byte_over_limit" in test_main
+         and "response.read_sizes" in test_main
+         and "MAX_SCRAPE_RESPONSE_BYTES + 1" in test_main,
+         "offline tests must cover the response-size boundary and bounded read request"),
+        ("scrape response body limit" in readme.lower()
+         and "Keep the scrape response body limit ahead of decoding and parser execution." in readme
+         and "scrape response body limit" in vision.lower()
+         and "scrape response body limit" in security.lower()
+         and "scrape response body limit" in changes.lower(),
+         "project guidance must document the scrape response body limit"),
+        (response_limit_status == ["completed"]
+         and "All four Make gates passed" in response_limit_verification_text
+         and "external directory" in response_limit_verification_text
+         and "Seven isolated hostile mutations were rejected" in response_limit_verification_text
+         and "34 offline tests passed" in response_limit_verification_text
+         and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", response_limit_verification),
+         "scrape response body limit plan must record completed status and actual verification"),
         ("make lint" in readme and "make test" in readme and "make build" in readme,
          "README must document standard Make gates"),
         ("make lint" in vision and "make test" in vision and "make build" in vision,
