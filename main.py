@@ -183,7 +183,16 @@ def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -
 
 
 def _read_bounded_response(response) -> bytes:
-    body = response.read(MAX_SCRAPE_RESPONSE_BYTES + 1)
+    chunks = []
+    remaining = MAX_SCRAPE_RESPONSE_BYTES + 1
+    while remaining > 0:
+        chunk = response.read(remaining)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+
+    body = b"".join(chunks)
     if len(body) > MAX_SCRAPE_RESPONSE_BYTES:
         raise ValueError("scrape response exceeds configured size limit")
     return body

@@ -20,13 +20,26 @@ class FakeCache:
 
 
 class FakeResponse:
-    def __init__(self, body=b'<div class="action"><span>Expected</span></div>'):
+    def __init__(
+        self,
+        body=b'<div class="action"><span>Expected</span></div>',
+        max_chunk_size=None,
+    ):
         self.body = body
+        self.max_chunk_size = max_chunk_size
+        self.offset = 0
         self.read_sizes = []
 
     def read(self, size=-1):
         self.read_sizes.append(size)
-        return self.body if size < 0 else self.body[:size]
+        if size < 0:
+            size = len(self.body) - self.offset
+        if self.max_chunk_size is not None:
+            size = min(size, self.max_chunk_size)
+        start = self.offset
+        end = min(start + size, len(self.body))
+        self.offset = end
+        return self.body[start:end]
 
 
 class FakeBrowser:
@@ -121,7 +134,13 @@ class MainTests(unittest.TestCase):
             ("User-agent", "agent"),
             ("Referer", "referer"),
         ])
-        self.assertEqual(browser.response.read_sizes, [main.MAX_SCRAPE_RESPONSE_BYTES + 1])
+        self.assertEqual(
+            browser.response.read_sizes,
+            [
+                main.MAX_SCRAPE_RESPONSE_BYTES + 1,
+                main.MAX_SCRAPE_RESPONSE_BYTES + 1 - len(browser.response.body),
+            ],
+        )
 
     def test_fetch_actions_uses_bounded_submission_response_without_result_url(self):
         browser = FakeBrowser()
@@ -148,7 +167,7 @@ class MainTests(unittest.TestCase):
         response = FakeResponse(b"x" * main.MAX_SCRAPE_RESPONSE_BYTES)
 
         self.assertEqual(len(main._read_bounded_response(response)), main.MAX_SCRAPE_RESPONSE_BYTES)
-        self.assertEqual(response.read_sizes, [main.MAX_SCRAPE_RESPONSE_BYTES + 1])
+        self.assertEqual(response.read_sizes, [main.MAX_SCRAPE_RESPONSE_BYTES + 1, 1])
 
     def test_read_bounded_response_rejects_one_byte_over_limit(self):
         response = FakeResponse(b"x" * (main.MAX_SCRAPE_RESPONSE_BYTES + 1))
@@ -157,6 +176,31 @@ class MainTests(unittest.TestCase):
             main._read_bounded_response(response)
 
         self.assertEqual(response.read_sizes, [main.MAX_SCRAPE_RESPONSE_BYTES + 1])
+
+    def test_read_bounded_response_assembles_short_reads(self):
+        response = FakeResponse(b"abcdef", max_chunk_size=2)
+
+        self.assertEqual(main._read_bounded_response(response), b"abcdef")
+        self.assertEqual(
+            response.read_sizes,
+            [
+                main.MAX_SCRAPE_RESPONSE_BYTES + 1,
+                main.MAX_SCRAPE_RESPONSE_BYTES - 1,
+                main.MAX_SCRAPE_RESPONSE_BYTES - 3,
+                main.MAX_SCRAPE_RESPONSE_BYTES - 5,
+            ],
+        )
+
+    def test_read_bounded_response_rejects_oversize_across_short_reads(self):
+        response = FakeResponse(
+            b"x" * (main.MAX_SCRAPE_RESPONSE_BYTES + 1),
+            max_chunk_size=4096,
+        )
+
+        with self.assertRaisesRegex(ValueError, "configured size limit"):
+            main._read_bounded_response(response)
+
+        self.assertEqual(response.offset, main.MAX_SCRAPE_RESPONSE_BYTES + 1)
 
     def test_extract_actions_reads_first_span_from_each_action(self):
         html = """

@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-15
+
+- Added scrape short-read handling so partial response reads are accumulated
+  without exceeding the existing response-size budget.
+
 ## 2026-06-14
 
 - Added a 1 MiB scrape response body limit before decoding and action parsing.

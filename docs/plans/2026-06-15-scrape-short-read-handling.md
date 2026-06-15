@@ -1,6 +1,6 @@
 # Scrape Short Read Handling
 
-status: in progress
+status: completed
 
 ## Context
 
@@ -44,8 +44,24 @@ one short read can silently truncate the HTML and leave later bytes unmeasured.
 
 ## Work Completed
 
-- Pending implementation.
+- Reworked the bounded response reader to accumulate nonempty short reads while
+  decrementing one fixed `limit + 1` budget and stopping at EOF.
+- Updated the response fake to advance a cursor and optionally cap each chunk.
+- Added focused short-read assembly and split oversize regression tests.
+- Added static contracts and operator, security, and maintenance guidance.
 
 ## Verification Completed
 
-- Pending validation.
+- The five focused response-reader tests and all 36 offline tests passed.
+- `make fmt` passed. All four Make gates passed from the checkout, with the broad
+  cleanup prerequisite explicitly treated as already complete for the canonical
+  gate; the same non-destructive check passed from an external directory through
+  the absolute Makefile path.
+- Seven isolated hostile mutations were rejected: missing loop continuation,
+  missing remaining-budget reads, missing EOF termination, missing budget
+  accounting, missing split oversize coverage, missing guidance, and stale plan
+  status.
+- Checker compilation and `git diff --check` passed. Exact intended-path,
+  generated-artifact, secret-pattern, conflict-marker, binary, and large-file
+  audits found no issues.
+- No live target, memcache, SMTP, or other external integration was contacted.

@@ -36,6 +36,7 @@ Priority:
 - Keep robot setting validation strict enough that typos fail closed
 - Keep the 15-second scrape request timeout on every mechanize network open
 - Keep the 1 MiB scrape response body limit before decoding and parsing
+- Keep scrape short-read handling within one fixed total response budget
 - Keep memcache server normalization ahead of optional client construction
 - Avoid ignoring robots or site terms without explicit documentation
 - Keep offline tests independent of live scraping, memcache, Gmail, and local credentials

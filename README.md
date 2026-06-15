@@ -100,6 +100,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   and optional result-page fetch.
 - A 1 MiB scrape response body limit rejects oversized result pages before
   decoding or action parsing.
+- Scrape short-read handling accumulates partial stream reads within the same
+  bounded budget so result pages are not silently truncated.
 - Memcache server normalization accepts one endpoint or a nonblank endpoint
   sequence, trims whitespace, and rejects malformed configuration before the
   optional client dependency is imported.
@@ -123,6 +125,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Keep robot setting validation in place so typos do not silently disable robot handling.
 - Keep scrape encoding validation in place so invalid response codec names fail before live scraping.
 - Keep the scrape response body limit ahead of decoding and parser execution.
+- Keep scrape short-read handling inside the total response byte budget.
 - Keep nested action parser depth coverage in place when changing response
   selectors or fixture shapes.
 - Keep SMTP header validation in place so sender, recipient, and subject values

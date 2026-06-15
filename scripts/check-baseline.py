@@ -64,6 +64,7 @@ REQUIRED = [
     "docs/plans/2026-06-14-scrape-request-timeout.md",
     "docs/plans/2026-06-14-memcache-server-normalization.md",
     "docs/plans/2026-06-14-scrape-response-body-limit.md",
+    "docs/plans/2026-06-15-scrape-short-read-handling.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -143,6 +144,9 @@ def main() -> int:
     response_limit_plan = (
         ROOT / "docs/plans/2026-06-14-scrape-response-body-limit.md"
     ).read_text(encoding="utf-8")
+    short_read_plan = (
+        ROOT / "docs/plans/2026-06-15-scrape-short-read-handling.md"
+    ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
@@ -175,6 +179,9 @@ def main() -> int:
     response_limit_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", response_limit_plan)
     response_limit_verification = markdown_section(response_limit_plan, "Verification Completed")
     response_limit_verification_text = " ".join(response_limit_verification.split())
+    short_read_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", short_read_plan)
+    short_read_verification = markdown_section(short_read_plan, "Verification Completed")
+    short_read_verification_text = " ".join(short_read_verification.split())
     expected_constraints = """# Reviewed CI resolution for Python 3.12.
 html5lib==1.1
 mechanize==0.4.10
@@ -356,24 +363,44 @@ python-memcached>=1.59,<2
          "README, VISION, SECURITY, and CHANGES must document bounded scrape requests"),
         ("MAX_SCRAPE_RESPONSE_BYTES = 1024 * 1024" in main_source
          and "def _read_bounded_response(response) -> bytes:" in main_source
-         and "response.read(MAX_SCRAPE_RESPONSE_BYTES + 1)" in main_source
+         and "remaining = MAX_SCRAPE_RESPONSE_BYTES + 1" in main_source
+         and "while remaining > 0:" in main_source
+         and "chunk = response.read(remaining)" in main_source
+         and "if not chunk:" in main_source
+         and "remaining -= len(chunk)" in main_source
+         and 'body = b"".join(chunks)' in main_source
          and "len(body) > MAX_SCRAPE_RESPONSE_BYTES" in main_source,
-         "scrape responses must be read one byte past a fixed 1 MiB limit and rejected when oversized"),
+         "scrape responses must accumulate short reads within one byte past a fixed 1 MiB limit"),
         (main_source.find("response_body = _read_bounded_response(response)") >= 0
          and main_source.find("return extract_actions(response_body, encoding=settings.encoding)")
              > main_source.find("response_body = _read_bounded_response(response)"),
          "fetch_actions must bound the selected response before decoding and parsing"),
         ("test_read_bounded_response_accepts_exact_limit" in test_main
          and "test_read_bounded_response_rejects_one_byte_over_limit" in test_main
+         and "test_read_bounded_response_assembles_short_reads" in test_main
+         and "test_read_bounded_response_rejects_oversize_across_short_reads" in test_main
+         and "max_chunk_size=4096" in test_main
          and "response.read_sizes" in test_main
          and "MAX_SCRAPE_RESPONSE_BYTES + 1" in test_main,
-         "offline tests must cover the response-size boundary and bounded read request"),
+         "offline tests must cover response boundaries, short reads, and the total read budget"),
         ("scrape response body limit" in readme.lower()
          and "Keep the scrape response body limit ahead of decoding and parser execution." in readme
          and "scrape response body limit" in vision.lower()
          and "scrape response body limit" in security.lower()
          and "scrape response body limit" in changes.lower(),
          "project guidance must document the scrape response body limit"),
+        ("scrape short-read handling" in readme.lower()
+         and "scrape short-read handling" in vision.lower()
+         and "scrape short-read handling" in security.lower()
+         and "scrape short-read handling" in changes.lower(),
+         "project guidance must document scrape short-read handling"),
+        (short_read_status == ["completed"]
+         and "36 offline tests passed" in short_read_verification_text
+         and "All four Make gates passed" in short_read_verification_text
+         and "external directory" in short_read_verification_text
+         and "Seven isolated hostile mutations were rejected" in short_read_verification_text
+         and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", short_read_verification),
+         "scrape short-read handling plan must record completed status and actual verification"),
         (response_limit_status == ["completed"]
          and "All four Make gates passed" in response_limit_verification_text
          and "external directory" in response_limit_verification_text

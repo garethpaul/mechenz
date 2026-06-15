@@ -41,6 +41,8 @@ Helpful reports include:
   and optional result-page request so a remote endpoint cannot stall a run.
 - The 1 MiB scrape response body limit should reject oversized result pages
   before decoding or action parsing.
+- Scrape short-read handling should accumulate partial reads without exceeding
+  the existing one-byte-over detection budget.
 - Memcache server normalization should reject blank or unsupported endpoint
   collections before importing or constructing the optional live client.
 - Scrape encoding validation should reject unknown response codec names before live scraping without echoing raw configuration values.
