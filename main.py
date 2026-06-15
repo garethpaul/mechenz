@@ -126,8 +126,12 @@ def fetch_actions(settings: ScrapeSettings, browser_factory=None) -> list[str]:
         browser.form[key] = value
     response = browser.open(browser.click(), timeout=SCRAPE_REQUEST_TIMEOUT)
     if settings.form_url:
+        response.close()
         response = browser.open(settings.form_url, timeout=SCRAPE_REQUEST_TIMEOUT)
-    response_body = _read_bounded_response(response)
+    try:
+        response_body = _read_bounded_response(response)
+    finally:
+        response.close()
     return extract_actions(response_body, encoding=settings.encoding)
 
 

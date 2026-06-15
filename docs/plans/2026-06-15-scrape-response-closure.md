@@ -1,6 +1,6 @@
 # Close Scrape Responses Deterministically
 
-status: planned
+status: completed
 
 ## Context
 
@@ -51,3 +51,27 @@ also leaks the superseded response.
 - The same response object may be returned by simplistic test doubles; tests
   should model distinct network responses so replacement ownership is clear.
 - The stacked base pull request must remain available and merge first.
+
+## Work Completed
+
+- Closed the submitted-form response before replacing it with an optional
+  result URL response.
+- Wrapped the selected response's bounded read in `try/finally` so success,
+  size-limit rejection, and read errors release it deterministically.
+- Added distinct response fakes plus direct, replacement, and read-failure
+  lifecycle assertions.
+- Added static contracts and operator, security, and maintenance guidance.
+
+## Verification Completed
+
+- The focused response lifecycle tests and all 37 offline tests passed.
+- Python source compilation and `make fmt` passed. All four Make gates passed
+  from the checkout, and the canonical check passed from an external directory
+  through the absolute Makefile path after an explicit artifact inventory.
+- Six isolated hostile mutations were rejected: missing superseded-response
+  closure, missing final-response closure, missing exceptional-path coverage,
+  missing static ownership contracts, missing guidance, and stale plan status.
+- Checker compilation and `git diff --check` passed. Exact intended-path,
+  generated-artifact, secret-pattern, conflict-marker, binary, and large-file
+  audits found no issues.
+- No live target, memcache, SMTP, or other external integration was contacted.

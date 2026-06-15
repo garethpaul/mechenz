@@ -43,6 +43,8 @@ Helpful reports include:
   before decoding or action parsing.
 - Scrape short-read handling should accumulate partial reads without exceeding
   the existing one-byte-over detection budget.
+- Scrape response closure should release both superseded and selected network
+  responses, including when bounded reading fails.
 - Memcache server normalization should reject blank or unsupported endpoint
   collections before importing or constructing the optional live client.
 - Scrape encoding validation should reject unknown response codec names before live scraping without echoing raw configuration values.

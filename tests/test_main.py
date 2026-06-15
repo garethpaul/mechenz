@@ -24,14 +24,19 @@ class FakeResponse:
         self,
         body=b'<div class="action"><span>Expected</span></div>',
         max_chunk_size=None,
+        read_error=None,
     ):
         self.body = body
         self.max_chunk_size = max_chunk_size
+        self.read_error = read_error
         self.offset = 0
         self.read_sizes = []
+        self.close_calls = 0
 
     def read(self, size=-1):
         self.read_sizes.append(size)
+        if self.read_error is not None:
+            raise self.read_error
         if size < 0:
             size = len(self.body) - self.offset
         if self.max_chunk_size is not None:
@@ -41,19 +46,29 @@ class FakeResponse:
         self.offset = end
         return self.body[start:end]
 
+    def close(self):
+        self.close_calls += 1
+
 
 class FakeBrowser:
     def __init__(self):
         self.opens = []
         self.form = {}
+        self.landing_response = FakeResponse(b"")
+        self.submission_response = FakeResponse()
         self.response = FakeResponse()
+        self.responses = [
+            self.landing_response,
+            self.submission_response,
+            self.response,
+        ]
 
     def set_handle_robots(self, value):
         self.robots = value
 
     def open(self, target, timeout):
         self.opens.append((target, timeout))
-        return self.response
+        return self.responses[len(self.opens) - 1]
 
     def select_form(self, nr):
         self.form_number = nr
@@ -141,6 +156,8 @@ class MainTests(unittest.TestCase):
                 main.MAX_SCRAPE_RESPONSE_BYTES + 1 - len(browser.response.body),
             ],
         )
+        self.assertEqual(browser.submission_response.close_calls, 1)
+        self.assertEqual(browser.response.close_calls, 1)
 
     def test_fetch_actions_uses_bounded_submission_response_without_result_url(self):
         browser = FakeBrowser()
@@ -162,6 +179,26 @@ class MainTests(unittest.TestCase):
             ("https://example.com", main.SCRAPE_REQUEST_TIMEOUT),
             ("submitted-request", main.SCRAPE_REQUEST_TIMEOUT),
         ])
+        self.assertEqual(browser.submission_response.close_calls, 1)
+
+    def test_fetch_actions_closes_selected_response_when_read_fails(self):
+        browser = FakeBrowser()
+        browser.submission_response = FakeResponse(read_error=OSError("read failed"))
+        browser.responses[1] = browser.submission_response
+        settings = main.ScrapeSettings(
+            name="sample",
+            recipient="to@example.com",
+            site="https://example.com",
+            form_url="",
+            form={},
+            fake_user_agent="agent",
+            fake_referer="referer",
+        )
+
+        with self.assertRaisesRegex(OSError, "read failed"):
+            main.fetch_actions(settings, browser_factory=lambda: browser)
+
+        self.assertEqual(browser.submission_response.close_calls, 1)
 
     def test_read_bounded_response_accepts_exact_limit(self):
         response = FakeResponse(b"x" * main.MAX_SCRAPE_RESPONSE_BYTES)

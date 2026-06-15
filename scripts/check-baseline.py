@@ -65,6 +65,7 @@ REQUIRED = [
     "docs/plans/2026-06-14-memcache-server-normalization.md",
     "docs/plans/2026-06-14-scrape-response-body-limit.md",
     "docs/plans/2026-06-15-scrape-short-read-handling.md",
+    "docs/plans/2026-06-15-scrape-response-closure.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -147,6 +148,9 @@ def main() -> int:
     short_read_plan = (
         ROOT / "docs/plans/2026-06-15-scrape-short-read-handling.md"
     ).read_text(encoding="utf-8")
+    response_closure_plan = (
+        ROOT / "docs/plans/2026-06-15-scrape-response-closure.md"
+    ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
@@ -182,6 +186,15 @@ def main() -> int:
     short_read_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", short_read_plan)
     short_read_verification = markdown_section(short_read_plan, "Verification Completed")
     short_read_verification_text = " ".join(short_read_verification.split())
+    response_closure_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", response_closure_plan
+    )
+    response_closure_verification = markdown_section(
+        response_closure_plan, "Verification Completed"
+    )
+    response_closure_verification_text = " ".join(
+        response_closure_verification.split()
+    )
     expected_constraints = """# Reviewed CI resolution for Python 3.12.
 html5lib==1.1
 mechanize==0.4.10
@@ -375,6 +388,9 @@ python-memcached>=1.59,<2
          and main_source.find("return extract_actions(response_body, encoding=settings.encoding)")
              > main_source.find("response_body = _read_bounded_response(response)"),
          "fetch_actions must bound the selected response before decoding and parsing"),
+        ("if settings.form_url:\n        response.close()\n        response = browser.open(" in main_source
+         and "try:\n        response_body = _read_bounded_response(response)\n    finally:\n        response.close()" in main_source,
+         "fetch_actions must close superseded and selected scrape responses"),
         ("test_read_bounded_response_accepts_exact_limit" in test_main
          and "test_read_bounded_response_rejects_one_byte_over_limit" in test_main
          and "test_read_bounded_response_assembles_short_reads" in test_main
@@ -383,6 +399,11 @@ python-memcached>=1.59,<2
          and "response.read_sizes" in test_main
          and "MAX_SCRAPE_RESPONSE_BYTES + 1" in test_main,
          "offline tests must cover response boundaries, short reads, and the total read budget"),
+        ("test_fetch_actions_closes_selected_response_when_read_fails" in test_main
+         and "browser.submission_response.close_calls" in test_main
+         and "browser.response.close_calls" in test_main
+         and "raise self.read_error" in test_main,
+         "offline tests must cover direct, replaced, and exceptional response closure"),
         ("scrape response body limit" in readme.lower()
          and "Keep the scrape response body limit ahead of decoding and parser execution." in readme
          and "scrape response body limit" in vision.lower()
@@ -401,6 +422,18 @@ python-memcached>=1.59,<2
          and "Seven isolated hostile mutations were rejected" in short_read_verification_text
          and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", short_read_verification),
          "scrape short-read handling plan must record completed status and actual verification"),
+        ("scrape response closure" in readme.lower()
+         and "scrape response closure" in vision.lower()
+         and "scrape response closure" in security.lower()
+         and "scrape response closure" in changes.lower(),
+         "project guidance must document deterministic scrape response closure"),
+        (response_closure_status == ["completed"]
+         and "37 offline tests passed" in response_closure_verification_text
+         and "All four Make gates passed" in response_closure_verification_text
+         and "external directory" in response_closure_verification_text
+         and "Six isolated hostile mutations were rejected" in response_closure_verification_text
+         and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", response_closure_verification),
+         "scrape response closure plan must record completed status and actual verification"),
         (response_limit_status == ["completed"]
          and "All four Make gates passed" in response_limit_verification_text
          and "external directory" in response_limit_verification_text

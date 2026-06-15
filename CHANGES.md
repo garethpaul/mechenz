@@ -4,6 +4,8 @@
 
 - Added scrape short-read handling so partial response reads are accumulated
   without exceeding the existing response-size budget.
+- Added deterministic scrape response closure for replaced, completed, and
+  failed bounded reads.
 
 ## 2026-06-14
 
