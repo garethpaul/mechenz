@@ -45,6 +45,8 @@ Helpful reports include:
   the existing one-byte-over detection budget.
 - Scrape response closure should release both superseded and selected network
   responses, including when bounded reading fails.
+- Landing-page responses should close before a submitted request is opened and
+  when form selection or population fails.
 - Memcache server normalization should reject blank or unsupported endpoint
   collections before importing or constructing the optional live client.
 - Scrape encoding validation should reject unknown response codec names before live scraping without echoing raw configuration values.

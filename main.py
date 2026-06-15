@@ -120,11 +120,15 @@ def fetch_actions(settings: ScrapeSettings, browser_factory=None) -> list[str]:
         ("Referer", settings.fake_referer),
     ]
     browser.set_handle_robots(settings.respect_robots)
-    browser.open(settings.site, timeout=SCRAPE_REQUEST_TIMEOUT)
-    browser.select_form(nr=0)
-    for key, value in settings.form.items():
-        browser.form[key] = value
-    response = browser.open(browser.click(), timeout=SCRAPE_REQUEST_TIMEOUT)
+    landing_response = browser.open(settings.site, timeout=SCRAPE_REQUEST_TIMEOUT)
+    try:
+        browser.select_form(nr=0)
+        for key, value in settings.form.items():
+            browser.form[key] = value
+        submission_request = browser.click()
+    finally:
+        landing_response.close()
+    response = browser.open(submission_request, timeout=SCRAPE_REQUEST_TIMEOUT)
     if settings.form_url:
         response.close()
         response = browser.open(settings.form_url, timeout=SCRAPE_REQUEST_TIMEOUT)

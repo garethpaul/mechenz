@@ -156,8 +156,32 @@ class MainTests(unittest.TestCase):
                 main.MAX_SCRAPE_RESPONSE_BYTES + 1 - len(browser.response.body),
             ],
         )
+        self.assertEqual(browser.landing_response.close_calls, 1)
         self.assertEqual(browser.submission_response.close_calls, 1)
         self.assertEqual(browser.response.close_calls, 1)
+
+    def test_fetch_actions_closes_landing_response_when_form_selection_fails(self):
+        browser = FakeBrowser()
+
+        def fail_selection(nr):
+            raise ValueError("form selection failed")
+
+        browser.select_form = fail_selection
+        settings = main.ScrapeSettings(
+            name="sample",
+            recipient="to@example.com",
+            site="https://example.com",
+            form_url="",
+            form={},
+            fake_user_agent="agent",
+            fake_referer="referer",
+        )
+
+        with self.assertRaisesRegex(ValueError, "form selection failed"):
+            main.fetch_actions(settings, browser_factory=lambda: browser)
+
+        self.assertEqual(browser.landing_response.close_calls, 1)
+        self.assertEqual(len(browser.opens), 1)
 
     def test_fetch_actions_uses_bounded_submission_response_without_result_url(self):
         browser = FakeBrowser()

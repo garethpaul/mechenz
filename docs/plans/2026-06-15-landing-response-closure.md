@@ -1,7 +1,7 @@
 ---
 title: Landing Response Closure
 type: reliability
-status: planned
+status: completed
 date: 2026-06-15
 execution: code
 ---
@@ -48,3 +48,24 @@ form-selection or form-population failure can leave its network resources open.
 - Do not change target sites, form data, parsing, cache, SMTP, or retry policy.
 - Do not contact live target, memcache, or mail services.
 - Do not merge or close stacked pull requests without owner authorization.
+
+## Status: Completed
+
+## Work Completed
+
+- Retained the landing response through form preparation and closed it in a
+  `finally` block before the submitted request is opened.
+- Added success and form-selection failure regressions proving exactly one
+  landing-response close and no submitted open after preparation failure.
+- Added ownership, ordering, regression, guidance, and completed-plan contracts.
+
+## Verification Completed
+
+- Focused regressions failed against the previous implementation and passed
+  after deterministic landing-response ownership was added.
+- All 38 offline tests passed through the focused suite and every Make gate.
+- Repository and absolute-Makefile checks passed from an external directory.
+- Six isolated hostile mutations were rejected for ownership, close ordering,
+  success coverage, exceptional-path coverage, guidance, and plan status.
+- Exact diff, generated-artifact, conflict-marker, and secret-pattern audits passed.
+- No live target, memcache, or SMTP integration was contacted.

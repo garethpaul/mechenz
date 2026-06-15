@@ -104,6 +104,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   bounded budget so result pages are not silently truncated.
 - Scrape response closure releases a superseded submission response before an
   optional result fetch and always closes the selected response after reading.
+- Landing response closure releases the initial page before opening the form
+  submission and also closes it when form preparation fails.
 - Memcache server normalization accepts one endpoint or a nonblank endpoint
   sequence, trims whitespace, and rejects malformed configuration before the
   optional client dependency is imported.
@@ -129,6 +131,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Keep the scrape response body limit ahead of decoding and parser execution.
 - Keep scrape short-read handling inside the total response byte budget.
 - Keep scrape response closure on direct, replacement, and read-failure paths.
+- Keep landing response closure on successful and failed form-preparation paths.
 - Keep nested action parser depth coverage in place when changing response
   selectors or fixture shapes.
 - Keep SMTP header validation in place so sender, recipient, and subject values

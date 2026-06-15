@@ -38,6 +38,7 @@ Priority:
 - Keep the 1 MiB scrape response body limit before decoding and parsing
 - Keep scrape short-read handling within one fixed total response budget
 - Keep scrape response closure deterministic across replacement and read errors
+- Keep landing response closure deterministic across form preparation failures
 - Keep memcache server normalization ahead of optional client construction
 - Avoid ignoring robots or site terms without explicit documentation
 - Keep offline tests independent of live scraping, memcache, Gmail, and local credentials

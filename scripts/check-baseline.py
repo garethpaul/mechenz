@@ -66,6 +66,7 @@ REQUIRED = [
     "docs/plans/2026-06-14-scrape-response-body-limit.md",
     "docs/plans/2026-06-15-scrape-short-read-handling.md",
     "docs/plans/2026-06-15-scrape-response-closure.md",
+    "docs/plans/2026-06-15-landing-response-closure.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -151,6 +152,9 @@ def main() -> int:
     response_closure_plan = (
         ROOT / "docs/plans/2026-06-15-scrape-response-closure.md"
     ).read_text(encoding="utf-8")
+    landing_response_plan = (
+        ROOT / "docs/plans/2026-06-15-landing-response-closure.md"
+    ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
@@ -194,6 +198,15 @@ def main() -> int:
     )
     response_closure_verification_text = " ".join(
         response_closure_verification.split()
+    )
+    landing_response_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", landing_response_plan
+    )
+    landing_response_verification = markdown_section(
+        landing_response_plan, "Verification Completed"
+    )
+    landing_response_verification_text = " ".join(
+        landing_response_verification.split()
     )
     expected_constraints = """# Reviewed CI resolution for Python 3.12.
 html5lib==1.1
@@ -329,7 +342,8 @@ python-memcached>=1.59,<2
          "location-independent Make plan must record completed root, external, and mutation verification"),
         ("SCRAPE_REQUEST_TIMEOUT = 15" in main_source
          and main_source.count("timeout=SCRAPE_REQUEST_TIMEOUT") == 3
-         and "browser.open(browser.click(), timeout=SCRAPE_REQUEST_TIMEOUT)" in main_source
+         and "submission_request = browser.click()" in main_source
+         and "browser.open(submission_request, timeout=SCRAPE_REQUEST_TIMEOUT)" in main_source
          and "browser.submit()" not in main_source,
          "fetch_actions must apply one finite timeout to all three mechanize opens"),
         ("test_fetch_actions_bounds_every_network_open" in test_main
@@ -339,6 +353,21 @@ python-memcached>=1.59,<2
          and 'self.assertEqual(browser.form, {"q": "value"})' in test_main
          and "self.assertTrue(browser.robots)" in test_main,
          "offline tests must verify bounded opens while preserving browser configuration"),
+        ("landing_response = browser.open(settings.site, timeout=SCRAPE_REQUEST_TIMEOUT)" in main_source
+         and "submission_request = browser.click()" in main_source
+         and "landing_response.close()" in main_source
+         and main_source.find("landing_response.close()")
+             < main_source.find("browser.open(submission_request, timeout=SCRAPE_REQUEST_TIMEOUT)"),
+         "fetch_actions must close the landing response before opening the submitted request"),
+        ("test_fetch_actions_closes_landing_response_when_form_selection_fails" in test_main
+         and test_main.count("browser.landing_response.close_calls, 1") == 2
+         and "self.assertEqual(len(browser.opens), 1)" in test_main,
+         "tests must cover landing response closure on success and form-selection failure"),
+        ("Landing response closure releases" in readme
+         and "Landing-page responses should close" in security
+         and "Keep landing response closure deterministic" in vision
+         and "Closed landing-page responses" in changes,
+         "project guidance must document deterministic landing response closure"),
         ("def _normalize_memcache_servers(value) -> list[str]:" in main_source
          and "candidates = [value] if isinstance(value, str) else value" in main_source
          and "not isinstance(candidates, Sequence)" in main_source
@@ -434,6 +463,12 @@ python-memcached>=1.59,<2
          and "Six isolated hostile mutations were rejected" in response_closure_verification_text
          and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", response_closure_verification),
          "scrape response closure plan must record completed status and actual verification"),
+        (landing_response_status == ["completed"]
+         and "All 38 offline tests passed" in landing_response_verification_text
+         and "external directory" in landing_response_verification_text
+         and "Six isolated hostile mutations were rejected" in landing_response_verification_text
+         and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", landing_response_verification),
+         "landing response closure plan must record completed status and actual verification"),
         (response_limit_status == ["completed"]
          and "All four Make gates passed" in response_limit_verification_text
          and "external directory" in response_limit_verification_text
