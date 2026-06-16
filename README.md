@@ -78,6 +78,9 @@ python3 main.py
   checkout's Makefile by absolute path, such as
   `make -f /path/to/mechenz/Makefile check`.
 - The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
+- SMTP STARTTLS certificate verification uses Python's default client TLS
+  context so trusted certificate authorities and hostname checks apply before
+  credentials are submitted.
 - Action parsing keeps nested container depth balanced so an ordinary inner
   `div` cannot hide the first span that follows it.
 - Pinned `ubuntu-24.04` GitHub Actions installs `requirements.txt` through the

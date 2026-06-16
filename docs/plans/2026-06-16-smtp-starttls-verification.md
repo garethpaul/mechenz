@@ -1,7 +1,7 @@
 ---
 title: SMTP STARTTLS Certificate Verification
 type: security
-status: planned
+status: completed
 date: 2026-06-16
 execution: code
 ---
@@ -71,3 +71,32 @@ explicit and regression-tested rather than depend on compatibility defaults.
   client use and demonstrates passing it to `SMTP.starttls`.
 - Python `smtplib` documents the optional `context` argument as the supported
   TLS configuration boundary for STARTTLS.
+
+## Status: Completed
+
+## Work Completed
+
+- Created one `ssl.create_default_context()` result before opening the SMTP
+  session and passed that exact object to `SMTP.starttls(context=...)` before
+  authentication.
+- Added focused runtime coverage for context-factory invocation, exact context
+  identity, STARTTLS-before-login ordering, and the default context's hostname
+  and certificate verification properties.
+- Added static implementation, test, guidance, and completed-plan contracts.
+- Updated maintained project guidance and the changelog with the verified
+  STARTTLS boundary.
+
+## Verification Completed
+
+- The focused TLS-context regression failed against the previous implementation
+  and passed after the explicit default context was applied.
+- All 39 offline tests passed through `make fmt`, `make lint`, `make test`,
+  `make build`, and `make check`.
+- All five repository Make gates passed, and the absolute-Makefile `make check`
+  passed from an external directory.
+- Seven isolated hostile mutations were rejected for the SSL import, secure
+  context factory, STARTTLS context argument, exact context identity, focused
+  test contract, maintained guidance, and completed plan status.
+- `git diff --check`, generated-artifact inspection, and intended-diff
+  credential-pattern inspection passed with no findings.
+- No live SMTP service was contacted and no credential was used.

@@ -17,7 +17,8 @@ cover the static baseline, offline unit tests, Python compilation, generated
 artifact cleanup, action parsing, email body generation, cache comparison,
 settings validation, scrape settings validation, notification delivery, SMTP
 environment configuration, SMTP numeric setting validation, and SMTP TLS/login
-setup, SMTP header validation, and nested action parser depth.
+setup, SMTP STARTTLS certificate verification, SMTP header validation, and
+nested action parser depth.
 
 The current focus is:
 
@@ -33,6 +34,8 @@ Priority:
   seconds, and validation errors free of raw configuration values
 - Keep SMTP recipient normalization before opening outbound SMTP connections
 - Keep SMTP header validation before opening outbound SMTP connections
+- Keep SMTP STARTTLS certificate verification on the exact context created by
+  Python's secure client defaults before authentication
 - Keep robot setting validation strict enough that typos fail closed
 - Keep the 15-second scrape request timeout on every mechanize network open
 - Keep the 1 MiB scrape response body limit before decoding and parsing

@@ -58,6 +58,9 @@ Helpful reports include:
 - SMTP recipient normalization should strip recipient addresses and reject all-blank recipient lists before opening outbound SMTP connections.
 - SMTP header validation should reject CRLF in sender, recipient, and subject
   values before opening outbound SMTP connections.
+- SMTP STARTTLS certificate verification should use Python's default client TLS
+  context before SMTP authentication so certificate and hostname checks cannot
+  fall back to compatibility behavior.
 - Robot setting validation should reject ambiguous `respect_robots` and `MECHENZ_IGNORE_ROBOTS` values without echoing raw configuration values.
 - Tests should use injected fakes and local fixtures rather than live scraping, memcache, or SMTP.
 

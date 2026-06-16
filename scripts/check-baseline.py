@@ -67,6 +67,7 @@ REQUIRED = [
     "docs/plans/2026-06-15-scrape-short-read-handling.md",
     "docs/plans/2026-06-15-scrape-response-closure.md",
     "docs/plans/2026-06-15-landing-response-closure.md",
+    "docs/plans/2026-06-16-smtp-starttls-verification.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -155,6 +156,9 @@ def main() -> int:
     landing_response_plan = (
         ROOT / "docs/plans/2026-06-15-landing-response-closure.md"
     ).read_text(encoding="utf-8")
+    smtp_tls_plan = (
+        ROOT / "docs/plans/2026-06-16-smtp-starttls-verification.md"
+    ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
@@ -208,6 +212,10 @@ def main() -> int:
     landing_response_verification_text = " ".join(
         landing_response_verification.split()
     )
+    smtp_tls_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", smtp_tls_plan)
+    smtp_tls_work = markdown_section(smtp_tls_plan, "Work Completed")
+    smtp_tls_verification = markdown_section(smtp_tls_plan, "Verification Completed")
+    smtp_tls_verification_text = " ".join(smtp_tls_verification.split())
     expected_constraints = """# Reviewed CI resolution for Python 3.12.
 html5lib==1.1
 mechanize==0.4.10
@@ -611,6 +619,42 @@ python-memcached>=1.59,<2
          "CHANGES must record SMTP header validation"),
         ("status: completed" in header_plan,
          "SMTP header validation plan must be marked completed"),
+        ("import ssl" in mail_source
+         and "tls_context = ssl.create_default_context()" in mail_source
+         and "server.starttls(context=tls_context)" in mail_source
+         and mail_source.find("tls_context = ssl.create_default_context()")
+             < mail_source.find("server = smtp_factory(")
+         and mail_source.find("server.starttls(context=tls_context)")
+             < mail_source.find("server.login(settings.login, settings.password)"),
+         "RoyalMail must create and apply a verifying STARTTLS context before authentication"),
+        ("test_send_mail_passes_default_context_to_starttls_before_login" in test_mail
+         and 'mock.patch.object(' in test_mail
+         and 'RoyalMail.ssl,' in test_mail
+         and '"create_default_context"' in test_mail
+         and 'return_value=tls_context' in test_mail
+         and 'context_factory.assert_called_once_with()' in test_mail
+         and 'self.assertIn(("starttls", tls_context), smtp.calls)' in test_mail,
+         "tests must preserve exact STARTTLS context creation, identity, and ordering"),
+        ("smtp starttls certificate verification" in readme.lower()
+         and "smtp starttls certificate verification" in vision.lower()
+         and "smtp starttls certificate verification" in security.lower(),
+         "project guidance must document SMTP STARTTLS certificate verification"),
+        ("smtp starttls certificate verification" in changes.lower(),
+         "CHANGES must record SMTP STARTTLS certificate verification"),
+        ("# SMTP STARTTLS Certificate Verification" in smtp_tls_plan,
+         "SMTP STARTTLS verification plan must remain tracked"),
+        (smtp_tls_status == ["completed"] and bool(smtp_tls_work),
+         "SMTP STARTTLS verification plan must record completed status and work"),
+        (all(evidence in smtp_tls_verification_text for evidence in [
+            "39 offline tests",
+            "All five repository Make gates passed",
+            "external directory",
+            "Seven isolated hostile mutations were rejected",
+            "git diff --check",
+            "No live SMTP service was contacted",
+         ])
+         and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", smtp_tls_verification),
+         "SMTP STARTTLS verification plan must preserve completed verification evidence"),
     ]
     for passed, message in checks:
         if not passed:

@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 import RoyalMail
 
@@ -16,8 +17,8 @@ class FakeSMTP:
     def ehlo(self):
         self.calls.append(("ehlo",))
 
-    def starttls(self):
-        self.calls.append(("starttls",))
+    def starttls(self, *, context):
+        self.calls.append(("starttls", context))
 
     def login(self, login, password):
         self.calls.append(("login", login, password))
@@ -152,12 +153,43 @@ class RoyalMailTests(unittest.TestCase):
 
         smtp = FakeSMTP.instances[0]
         self.assertEqual((smtp.host, smtp.port, smtp.timeout), ("smtp.example.com", 2525, 5))
-        self.assertIn(("starttls",), smtp.calls)
+        self.assertEqual([call[0] for call in smtp.calls].count("starttls"), 1)
         self.assertIn(("login", "sender@example.com", "secret"), smtp.calls)
         sendmail_call = [call for call in smtp.calls if call[0] == "sendmail"][0]
         self.assertEqual(sendmail_call[1], "sender@example.com")
         self.assertEqual(sendmail_call[2], ["to@example.com"])
         self.assertIn("Subject", sendmail_call[3])
+
+    def test_send_mail_passes_default_context_to_starttls_before_login(self):
+        tls_context = object()
+        settings = RoyalMail.MailSettings(
+            login="sender@example.com",
+            password="secret",
+            host="smtp.example.com",
+            port=2525,
+            timeout=5,
+        )
+
+        with mock.patch.object(
+            RoyalMail.ssl,
+            "create_default_context",
+            return_value=tls_context,
+        ) as context_factory:
+            RoyalMail.send_mail(
+                ["to@example.com"],
+                "Subject",
+                "Body",
+                mail_settings=settings,
+                smtp_factory=FakeSMTP,
+            )
+
+        smtp = FakeSMTP.instances[0]
+        context_factory.assert_called_once_with()
+        self.assertIn(("starttls", tls_context), smtp.calls)
+        self.assertLess(
+            smtp.calls.index(("starttls", tls_context)),
+            smtp.calls.index(("login", "sender@example.com", "secret")),
+        )
 
     def test_send_mail_normalizes_recipients(self):
         settings = RoyalMail.MailSettings(

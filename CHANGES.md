@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-16
+
+- Added SMTP STARTTLS certificate verification with Python's default client TLS
+  context before authentication.
+
 ## 2026-06-15
 
 - Closed landing-page responses before form submission and on form-preparation failures.
