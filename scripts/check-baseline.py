@@ -68,6 +68,7 @@ REQUIRED = [
     "docs/plans/2026-06-15-scrape-response-closure.md",
     "docs/plans/2026-06-15-landing-response-closure.md",
     "docs/plans/2026-06-16-smtp-starttls-verification.md",
+    "docs/plans/2026-06-17-memcache-socket-timeout.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -159,6 +160,9 @@ def main() -> int:
     smtp_tls_plan = (
         ROOT / "docs/plans/2026-06-16-smtp-starttls-verification.md"
     ).read_text(encoding="utf-8")
+    memcache_timeout_plan = (
+        ROOT / "docs/plans/2026-06-17-memcache-socket-timeout.md"
+    ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/check.yml").read_text(encoding="utf-8")
@@ -166,6 +170,14 @@ def main() -> int:
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
         *sorted((ROOT / ".github/workflows").glob("*.yaml")),
     ]
+
+    memcache_timeout_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", memcache_timeout_plan
+    )
+    memcache_timeout_work = markdown_section(memcache_timeout_plan, "Work Completed")
+    memcache_timeout_verification = markdown_section(
+        memcache_timeout_plan, "Verification Completed"
+    )
 
     numeric_bounds_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", numeric_bounds_plan)
     numeric_bounds_work = markdown_section(numeric_bounds_plan, "Work Completed")
@@ -391,6 +403,50 @@ python-memcached>=1.59,<2
          and "test_create_cache_ignores_blank_environment_override" in test_main
          and "test_create_cache_rejects_blank_or_unsupported_server_settings" in test_main,
          "tests must cover memcache endpoint normalization and rejection"),
+        ("DEFAULT_MEMCACHE_TIMEOUT = 5.0" in main_source
+         and "MAX_MEMCACHE_TIMEOUT = 300.0" in main_source
+         and 'timeout = env.get("MEMCACHE_TIMEOUT")' in main_source
+         and 'settings_module, "memcache_timeout", DEFAULT_MEMCACHE_TIMEOUT' in main_source
+         and "if configured_timeout is None or not str(configured_timeout).strip():" in main_source
+         and "socket_timeout = _parse_memcache_timeout(configured_timeout)" in main_source
+         and "memcache.Client(servers, debug=0, socket_timeout=socket_timeout)" in main_source
+         and main_source.find("socket_timeout = _parse_memcache_timeout(configured_timeout)")
+             < main_source.find('memcache = importlib.import_module("memcache")'),
+         "create_cache must validate and pass a bounded timeout before client import"),
+        ("def _parse_memcache_timeout(value) -> float:" in main_source
+         and "float(value)" in main_source
+         and "math.isfinite(timeout)" in main_source
+         and "timeout <= 0" in main_source
+         and "timeout > MAX_MEMCACHE_TIMEOUT" in main_source
+         and 'raise ValueError("invalid MEMCACHE_TIMEOUT")' in main_source,
+         "memcache timeout validation must require a finite positive bounded value"),
+        ("test_create_cache_uses_settings_timeout_and_environment_override" in test_main
+         and "test_create_cache_rejects_invalid_timeout_before_client_import" in test_main
+         and "import_module.assert_not_called()" in test_main
+         and 'self.assertNotIn(value, str(error.exception))' in test_main,
+         "tests must cover memcache timeout precedence, propagation, and sanitized rejection"),
+        ("memcache socket timeout" in readme.lower()
+         and "memcache socket timeout" in vision.lower()
+         and "memcache socket timeout" in security.lower()
+         and "memcache socket timeout" in changes.lower(),
+         "project guidance must document the bounded memcache socket timeout"),
+        (memcache_timeout_status == ["completed"]
+         and all(token in memcache_timeout_work for token in (
+             "5-second default",
+             "MEMCACHE_TIMEOUT",
+             "socket_timeout",
+         ))
+         and all(token in memcache_timeout_verification for token in (
+             "offline tests passed",
+             "external directory",
+             "isolated hostile mutations were rejected",
+             "No live memcache server was contacted",
+         ))
+         and not re.search(
+             r"(?i)\b(?:pending|todo|tbd|not run)\b",
+             memcache_timeout_work + "\n" + memcache_timeout_verification,
+         ),
+         "memcache socket timeout plan must record completed work and verification"),
         ("memcache server normalization" in readme.lower()
          and "memcache server normalization" in vision.lower()
          and "memcache server normalization" in security.lower()

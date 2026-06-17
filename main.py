@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import date
 from html.parser import HTMLParser
 import importlib
+import math
 import os
 from urllib.parse import urlparse
 
@@ -15,6 +16,8 @@ import RoyalMail
 
 SCRAPE_REQUEST_TIMEOUT = 15
 MAX_SCRAPE_RESPONSE_BYTES = 1024 * 1024
+DEFAULT_MEMCACHE_TIMEOUT = 5.0
+MAX_MEMCACHE_TIMEOUT = 300.0
 
 
 @dataclass(frozen=True)
@@ -216,8 +219,15 @@ def create_cache(env: Mapping[str, str] = os.environ, settings_module=None):
         settings_module, "memcache_servers", ["127.0.0.1:11211"]
     )
     servers = _normalize_memcache_servers(configured_servers)
+    timeout = env.get("MEMCACHE_TIMEOUT")
+    configured_timeout = timeout if timeout is not None and str(timeout).strip() else getattr(
+        settings_module, "memcache_timeout", DEFAULT_MEMCACHE_TIMEOUT
+    )
+    if configured_timeout is None or not str(configured_timeout).strip():
+        configured_timeout = DEFAULT_MEMCACHE_TIMEOUT
+    socket_timeout = _parse_memcache_timeout(configured_timeout)
     memcache = importlib.import_module("memcache")
-    return memcache.Client(servers, debug=0)
+    return memcache.Client(servers, debug=0, socket_timeout=socket_timeout)
 
 
 def get_data(data, cache=None, settings_module=None):
@@ -274,6 +284,16 @@ def _normalize_memcache_servers(value) -> list[str]:
         raise ValueError("memcache_servers must contain non-empty strings")
 
     return [server.strip() for server in candidates]
+
+
+def _parse_memcache_timeout(value) -> float:
+    try:
+        timeout = float(value)
+    except (TypeError, ValueError):
+        raise ValueError("invalid MEMCACHE_TIMEOUT") from None
+    if not math.isfinite(timeout) or timeout <= 0 or timeout > MAX_MEMCACHE_TIMEOUT:
+        raise ValueError("invalid MEMCACHE_TIMEOUT")
+    return timeout
 
 
 def _valid_http_url(value: str) -> bool:

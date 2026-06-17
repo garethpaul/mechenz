@@ -112,6 +112,9 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Memcache server normalization accepts one endpoint or a nonblank endpoint
   sequence, trims whitespace, and rejects malformed configuration before the
   optional client dependency is imported.
+- Memcache socket timeout handling defaults to 5 seconds, accepts a finite
+  positive `MEMCACHE_TIMEOUT` or local `memcache_timeout` value up to 300
+  seconds, and validates it before importing or constructing the client.
 - SMTP numeric setting validation restricts ports to `1..65535` and timeouts to
   finite values no greater than 300 seconds without echoing raw configuration.
 - SMTP recipient normalization strips recipient addresses and rejects all-blank recipient lists before opening SMTP connections.

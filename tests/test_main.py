@@ -79,40 +79,48 @@ class FakeBrowser:
 
 class MainTests(unittest.TestCase):
     def test_create_cache_treats_single_server_string_as_one_endpoint(self):
-        memcache = SimpleNamespace(Client=lambda servers, debug: (servers, debug))
+        memcache = SimpleNamespace(
+            Client=lambda servers, debug, socket_timeout: (servers, debug, socket_timeout)
+        )
         settings = SimpleNamespace(memcache_servers=" cache.example:11211 ")
 
         with patch("main.importlib.import_module", return_value=memcache):
             client = main.create_cache({}, settings)
 
-        self.assertEqual(client, (["cache.example:11211"], 0))
+        self.assertEqual(client, (["cache.example:11211"], 0, 5.0))
 
     def test_create_cache_normalizes_server_sequence(self):
-        memcache = SimpleNamespace(Client=lambda servers, debug: (servers, debug))
+        memcache = SimpleNamespace(
+            Client=lambda servers, debug, socket_timeout: (servers, debug, socket_timeout)
+        )
         settings = SimpleNamespace(memcache_servers=[" cache-a:11211 ", "cache-b:11211"])
 
         with patch("main.importlib.import_module", return_value=memcache):
             client = main.create_cache({}, settings)
 
-        self.assertEqual(client, (["cache-a:11211", "cache-b:11211"], 0))
+        self.assertEqual(client, (["cache-a:11211", "cache-b:11211"], 0, 5.0))
 
     def test_create_cache_uses_nonblank_environment_override(self):
-        memcache = SimpleNamespace(Client=lambda servers, debug: (servers, debug))
+        memcache = SimpleNamespace(
+            Client=lambda servers, debug, socket_timeout: (servers, debug, socket_timeout)
+        )
         settings = SimpleNamespace(memcache_servers=["configured:11211"])
 
         with patch("main.importlib.import_module", return_value=memcache):
             client = main.create_cache({"MEMCACHE_SERVER": " override:11211 "}, settings)
 
-        self.assertEqual(client, (["override:11211"], 0))
+        self.assertEqual(client, (["override:11211"], 0, 5.0))
 
     def test_create_cache_ignores_blank_environment_override(self):
-        memcache = SimpleNamespace(Client=lambda servers, debug: (servers, debug))
+        memcache = SimpleNamespace(
+            Client=lambda servers, debug, socket_timeout: (servers, debug, socket_timeout)
+        )
         settings = SimpleNamespace(memcache_servers=["configured:11211"])
 
         with patch("main.importlib.import_module", return_value=memcache):
             client = main.create_cache({"MEMCACHE_SERVER": "  "}, settings)
 
-        self.assertEqual(client, (["configured:11211"], 0))
+        self.assertEqual(client, (["configured:11211"], 0, 5.0))
 
     def test_create_cache_rejects_blank_or_unsupported_server_settings(self):
         invalid_values = ([], ["cache:11211", " "], {"cache": "11211"}, b"cache:11211")
@@ -121,6 +129,44 @@ class MainTests(unittest.TestCase):
             with self.subTest(value=value):
                 with self.assertRaisesRegex(ValueError, "memcache_servers"):
                     main.create_cache({}, SimpleNamespace(memcache_servers=value))
+
+    def test_create_cache_uses_settings_timeout_and_environment_override(self):
+        memcache = SimpleNamespace(
+            Client=lambda servers, debug, socket_timeout: (servers, debug, socket_timeout)
+        )
+        settings = SimpleNamespace(
+            memcache_servers=["cache:11211"],
+            memcache_timeout="12.5",
+        )
+
+        with patch("main.importlib.import_module", return_value=memcache):
+            settings_client = main.create_cache({}, settings)
+            environment_client = main.create_cache({"MEMCACHE_TIMEOUT": "2"}, settings)
+            blank_environment_client = main.create_cache({"MEMCACHE_TIMEOUT": "  "}, settings)
+            default_client = main.create_cache(
+                {},
+                SimpleNamespace(memcache_servers=["cache:11211"], memcache_timeout="  "),
+            )
+
+        self.assertEqual(settings_client, (["cache:11211"], 0, 12.5))
+        self.assertEqual(environment_client, (["cache:11211"], 0, 2.0))
+        self.assertEqual(blank_environment_client, (["cache:11211"], 0, 12.5))
+        self.assertEqual(default_client, (["cache:11211"], 0, 5.0))
+
+    def test_create_cache_rejects_invalid_timeout_before_client_import(self):
+        invalid_values = ("0", "-1", "nan", "inf", "301", "not-a-number")
+
+        for value in invalid_values:
+            with self.subTest(value=value):
+                with patch("main.importlib.import_module") as import_module:
+                    with self.assertRaisesRegex(ValueError, "invalid MEMCACHE_TIMEOUT") as error:
+                        main.create_cache(
+                            {"MEMCACHE_TIMEOUT": value},
+                            SimpleNamespace(memcache_servers=["cache:11211"]),
+                        )
+
+                import_module.assert_not_called()
+                self.assertNotIn(value, str(error.exception))
 
     def test_fetch_actions_bounds_every_network_open(self):
         browser = FakeBrowser()

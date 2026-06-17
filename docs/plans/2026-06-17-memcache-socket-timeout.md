@@ -1,7 +1,7 @@
 ---
 title: "fix: Bound memcache socket operations"
 type: fix
-status: planned
+status: completed
 date: 2026-06-17
 execution: code
 ---
@@ -133,3 +133,27 @@ scraping, notification delivery, or normal process completion.
 - The pinned package remains `python-memcached==1.62` in `constraints.txt`, so
   this plan targets the repository's reviewed dependency resolution rather than
   an unverified newer API.
+
+## Work Completed
+
+- Added the 5-second default and bounded `MEMCACHE_TIMEOUT` or
+  `memcache_timeout` configuration with sanitized invalid-value errors.
+- Passed the validated value to the pinned client's `socket_timeout` argument
+  before any optional memcache import or construction.
+- Added runtime coverage for default, settings, environment precedence, blank
+  environment fallback, propagation, finite/range rejection, pre-import
+  validation, and error sanitization.
+- Added mutation-sensitive static contracts, settings-template guidance, and
+  maintained operational documentation.
+
+## Verification Completed
+
+- All 41 offline tests passed, including 28 focused scraper/cache tests.
+- Repository formatting, test, compilation, lint, build, and check gates passed;
+  the absolute Makefile check also passed from an external directory.
+- Eight isolated hostile mutations were rejected for the default, client
+  propagation, environment precedence, finite validation, upper bound, focused
+  test, guidance, and plan completion status.
+- Exact diff, artifact, conflict-marker, intended-path, and credential-pattern
+  audits passed with no findings.
+- No live memcache server was contacted.

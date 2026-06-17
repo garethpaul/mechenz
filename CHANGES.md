@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-17
+
+- Added a bounded memcache socket timeout with a 5-second default, validated
+  environment/settings overrides, and sanitized invalid-value failures.
+
 ## 2026-06-16
 
 - Added SMTP STARTTLS certificate verification with Python's default client TLS

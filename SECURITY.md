@@ -49,6 +49,10 @@ Helpful reports include:
   when form selection or population fails.
 - Memcache server normalization should reject blank or unsupported endpoint
   collections before importing or constructing the optional live client.
+- Memcache socket timeout validation should bound cache network waits to a
+  5-second default or a finite positive configured value no greater than 300
+  seconds. This limits waiting but does not prove cache availability or
+  integrity, and existing client failures continue to propagate.
 - Scrape encoding validation should reject unknown response codec names before live scraping without echoing raw configuration values.
 - Nested action parser depth tests should use local response fixtures so
   container-shape regressions are detected without live scraping.

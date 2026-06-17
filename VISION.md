@@ -43,6 +43,8 @@ Priority:
 - Keep scrape response closure deterministic across replacement and read errors
 - Keep landing response closure deterministic across form preparation failures
 - Keep memcache server normalization ahead of optional client construction
+- Keep the memcache socket timeout finite, positive, no greater than 300
+  seconds, and applied before optional client construction
 - Avoid ignoring robots or site terms without explicit documentation
 - Keep offline tests independent of live scraping, memcache, Gmail, and local credentials
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
