@@ -1,6 +1,6 @@
 # Network Boundary Review
 
-Status: in progress
+Status: completed
 
 ## Scope
 
@@ -26,7 +26,13 @@ Review the maintained Python scraper stack through PR #17 together with the over
 
 ## Verification
 
-Pending final Python matrices, dependency audit, hosted checks, and merge reconciliation.
+- `make check` passed with 52 offline tests and seven isolated hostile mutations.
+- Python 3.11.11 and 3.12.1 passed the full Make gate. Both local pyenv builds emitted unrelated Blake2 `hashlib` initialization warnings while completing successfully.
+- Absolute Makefile invocation from `/tmp` passed.
+- A constrained Python 3.11 environment installed the five reviewed packages, passed `pip check`, and confirmed python-memcached 1.62 parses normalized IPv4/DNS, Unix, and IPv6 endpoints as intended.
+- `pip-audit --requirement constraints.txt --no-deps` reported no known vulnerabilities.
+- Gitleaks found no current-tree leaks.
+- Aggregate review commit `6b7ae7c2e7eff5fdd42b562fc033e98c83567420` passed both hosted baseline runs (`27846454909`, `27846456736`) and CodeQL Actions/Python run `27846455695`.
 
 ## Residual Risk
 
