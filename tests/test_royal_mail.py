@@ -25,6 +25,7 @@ class FakeSMTP:
 
     def sendmail(self, sender, recipients, message):
         self.calls.append(("sendmail", sender, recipients, message))
+        return {}
 
     def close(self):
         self.calls.append(("close",))
@@ -275,6 +276,54 @@ class RoyalMailTests(unittest.TestCase):
             )
 
         self.assertEqual(FakeSMTP.instances, [])
+
+    def test_send_mail_rejects_partial_recipient_refusals(self):
+        class PartiallyRefusingSMTP(FakeSMTP):
+            def sendmail(self, sender, recipients, message):
+                super().sendmail(sender, recipients, message)
+                return {"refused@example.com": (550, b"no such user")}
+
+        settings = RoyalMail.MailSettings(
+            login="sender@example.com",
+            password="secret",
+            host="smtp.example.com",
+            port=2525,
+            timeout=5,
+        )
+
+        with self.assertRaises(RoyalMail.smtplib.SMTPRecipientsRefused):
+            RoyalMail.send_mail(
+                ["accepted@example.com", "refused@example.com"],
+                "Subject",
+                "Body",
+                mail_settings=settings,
+                smtp_factory=PartiallyRefusingSMTP,
+            )
+
+    def test_send_mail_preserves_primary_error_when_close_fails(self):
+        class FailingSMTP(FakeSMTP):
+            def login(self, username, password):
+                raise OSError("authentication transport failed")
+
+            def close(self):
+                raise OSError("close failed")
+
+        settings = RoyalMail.MailSettings(
+            login="sender@example.com",
+            password="secret",
+            host="smtp.example.com",
+            port=2525,
+            timeout=5,
+        )
+
+        with self.assertRaisesRegex(OSError, "authentication transport failed"):
+            RoyalMail.send_mail(
+                ["to@example.com"],
+                "Subject",
+                "Body",
+                mail_settings=settings,
+                smtp_factory=FailingSMTP,
+            )
 
 
 if __name__ == "__main__":

@@ -1,13 +1,18 @@
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: build check clean compile fmt lint static-check test
+.PHONY: build check clean compile fmt lint mutation-test static-check test unit-test
 
 check: clean lint test build
 
 lint: static-check
 
-test:
+test: unit-test mutation-test
+
+unit-test:
 	cd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
+
+mutation-test:
+	cd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-security-mutations.py
 
 build: compile
 

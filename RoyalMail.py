@@ -93,8 +93,16 @@ def send_mail(
         server.starttls(context=tls_context)
         server.ehlo()
         server.login(settings.login, settings.password)
-        server.sendmail(settings.login, recipients, message.as_string())
-    finally:
+        refused = server.sendmail(settings.login, recipients, message.as_string())
+        if refused:
+            raise smtplib.SMTPRecipientsRefused(refused)
+    except BaseException:
+        try:
+            server.close()
+        except BaseException:
+            pass
+        raise
+    else:
         server.close()
 
 

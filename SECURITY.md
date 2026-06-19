@@ -44,11 +44,16 @@ Helpful reports include:
 - Scrape short-read handling should accumulate partial reads without exceeding
   the existing one-byte-over detection budget.
 - Scrape response closure should release both superseded and selected network
-  responses, including when bounded reading fails.
+  responses, including when bounded reading fails, without masking the primary
+  parsing or transport error.
+- Form actions and final redirect URLs should stay within explicitly configured
+  HTTP(S) origins. Configuration rejects credential-bearing authorities,
+  localhost/non-public literal IPs, malformed ports, and header controls.
 - Landing-page responses should close before a submitted request is opened and
   when form selection or population fails.
 - Memcache server normalization should reject blank or unsupported endpoint
-  collections before importing or constructing the optional live client.
+  collections and malformed host/port strings before importing or constructing
+  the optional live client.
 - Memcache socket timeout validation should bound cache network waits to a
   5-second default or a finite positive configured value no greater than 300
   seconds. This limits waiting but does not prove cache availability or
@@ -65,6 +70,8 @@ Helpful reports include:
 - SMTP STARTTLS certificate verification should use Python's default client TLS
   context before SMTP authentication so certificate and hostname checks cannot
   fall back to compatibility behavior.
+- Partial SMTP recipient refusals should fail delivery, and cleanup failures
+  should not replace primary TLS, authentication, or delivery errors.
 - Robot setting validation should reject ambiguous `respect_robots` and `MECHENZ_IGNORE_ROBOTS` values without echoing raw configuration values.
 - Tests should use injected fakes and local fixtures rather than live scraping, memcache, or SMTP.
 

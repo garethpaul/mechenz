@@ -1,5 +1,14 @@
 # Changes
 
+## 2026-06-19
+
+- Restricted mechanize form actions and final redirects to configured HTTP(S)
+  origins, rejected unsafe authorities and request-header controls, and bounded
+  action-container nesting.
+- Preserved primary HTTP and SMTP failures when cleanup also fails, rejected
+  partial SMTP recipient refusals, and structurally validated memcache endpoints.
+- Added fake-network regression coverage and seven isolated hostile mutations.
+
 ## 2026-06-17
 
 - Added a bounded memcache socket timeout with a 5-second default, validated

@@ -71,7 +71,7 @@ python3 main.py
 ## Testing and Verification
 
 - `make lint` runs the static baseline and repository guardrails.
-- `make test` runs `python3 -m unittest discover -s tests`.
+- `make test` runs the offline unit suite and isolated hostile mutations.
 - `make build` compiles the Python modules.
 - `make check` cleans generated Python artifacts, then runs lint, test, and build.
 - The Make gates are location-independent. From another directory, pass the
@@ -82,7 +82,8 @@ python3 main.py
   context so trusted certificate authorities and hostname checks apply before
   credentials are submitted.
 - Action parsing keeps nested container depth balanced so an ordinary inner
-  `div` cannot hide the first span that follows it.
+  `div` cannot hide the first span that follows it, and rejects more than 256
+  nested action containers.
 - Pinned `ubuntu-24.04` GitHub Actions installs `requirements.txt` through the
   reviewed versions in `constraints.txt`, runs
   `pip check`, and executes `make check` on Python 3.12 through a read-only,
@@ -98,7 +99,10 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Keep `settings.py`, SMTP credentials, target-site secrets, `.env` files, logs, and scraped private data out of git.
 - Use `settings.py.example` only as a placeholder template with fake values.
 - Scrape settings validation rejects blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
-- Scrape URL validation rejects non-HTTP(S) target and result URLs before a live run.
+- Scrape URL validation rejects non-HTTP(S), credential-bearing, malformed,
+  localhost, and non-public literal-IP target and result URLs before a live run.
+- Form actions and final redirect URLs must remain on an explicitly configured
+  HTTP(S) origin; request user-agent and referer values reject control characters.
 - A 15-second scrape request timeout bounds the initial page, form submission,
   and optional result-page fetch.
 - A 1 MiB scrape response body limit rejects oversized result pages before
@@ -106,12 +110,13 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Scrape short-read handling accumulates partial stream reads within the same
   bounded budget so result pages are not silently truncated.
 - Scrape response closure releases a superseded submission response before an
-  optional result fetch and always closes the selected response after reading.
+  optional result fetch and always closes the selected response after reading
+  without replacing an active form or read failure with a cleanup failure.
 - Landing response closure releases the initial page before opening the form
   submission and also closes it when form preparation fails.
 - Memcache server normalization accepts one endpoint or a nonblank endpoint
-  sequence, trims whitespace, and rejects malformed configuration before the
-  optional client dependency is imported.
+  sequence, parses TCP host/port boundaries, preserves absolute Unix sockets,
+  and rejects malformed configuration before the optional client is imported.
 - Memcache socket timeout handling defaults to 5 seconds, accepts a finite
   positive `MEMCACHE_TIMEOUT` or local `memcache_timeout` value up to 300
   seconds, and validates it before importing or constructing the client.
@@ -120,6 +125,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - SMTP recipient normalization strips recipient addresses and rejects all-blank recipient lists before opening SMTP connections.
 - SMTP header validation rejects CRLF in sender, recipient, or subject values
   before opening SMTP connections.
+- SMTP delivery treats partial recipient refusals as failures and preserves
+  primary TLS, authentication, or delivery errors if connection cleanup fails.
 - Robot setting validation rejects ambiguous `respect_robots` and `MECHENZ_IGNORE_ROBOTS` values without echoing raw configuration values.
 - Scrape encoding validation rejects unknown response encodings before a live
   run without echoing raw configuration values.
@@ -132,6 +139,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Review changes that scrape live sites, disable robot handling, store scraped data, or send email.
 - Keep scrape settings validation in place so blank target or recipient settings fail before live scraping or email delivery.
 - Keep scrape URL validation in place so malformed or non-HTTP(S) targets fail before mechanize opens them.
+- Keep configured-origin checks on form actions and final redirects so a target
+  page cannot steer mechanize to an unconfigured origin.
 - Keep robot setting validation in place so typos do not silently disable robot handling.
 - Keep scrape encoding validation in place so invalid response codec names fail before live scraping.
 - Keep the scrape response body limit ahead of decoding and parser execution.

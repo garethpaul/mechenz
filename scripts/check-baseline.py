@@ -9,14 +9,19 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_MAKEFILE = """ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: build check clean compile fmt lint static-check test
+.PHONY: build check clean compile fmt lint mutation-test static-check test unit-test
 
 check: clean lint test build
 
 lint: static-check
 
-test:
+test: unit-test mutation-test
+
+unit-test:
 \tcd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
+
+mutation-test:
+\tcd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-security-mutations.py
 
 build: compile
 
@@ -36,6 +41,7 @@ fmt:
 REQUIRED = [
     ".gitignore",
     ".github/workflows/check.yml",
+    "AGENTS.md",
     "CHANGES.md",
     "Makefile",
     "README.md",
@@ -44,6 +50,7 @@ REQUIRED = [
     "constraints.txt",
     "requirements.txt",
     "settings.py.example",
+    "scripts/test-security-mutations.py",
     "docs/plans/2026-06-08-mechenz-baseline.md",
     "docs/plans/2026-06-08-mechenz-modernization.md",
     "docs/plans/2026-06-08-python3-scraper-baseline.md",
@@ -369,18 +376,18 @@ python-memcached>=1.59,<2
         ("test_fetch_actions_bounds_every_network_open" in test_main
          and "test_fetch_actions_uses_bounded_submission_response_without_result_url" in test_main
          and test_main.count("main.SCRAPE_REQUEST_TIMEOUT") >= 3
-         and 'return "submitted-request"' in test_main
+         and 'FakeRequest("https://example.com/submitted")' in test_main
          and 'self.assertEqual(browser.form, {"q": "value"})' in test_main
          and "self.assertTrue(browser.robots)" in test_main,
          "offline tests must verify bounded opens while preserving browser configuration"),
-        ("landing_response = browser.open(settings.site, timeout=SCRAPE_REQUEST_TIMEOUT)" in main_source
+        ("browser.open(settings.site, timeout=SCRAPE_REQUEST_TIMEOUT)" in main_source
          and "submission_request = browser.click()" in main_source
-         and "landing_response.close()" in main_source
-         and main_source.find("landing_response.close()")
+         and "with _closing_response(" in main_source
+         and main_source.find("with _closing_response(")
              < main_source.find("browser.open(submission_request, timeout=SCRAPE_REQUEST_TIMEOUT)"),
          "fetch_actions must close the landing response before opening the submitted request"),
         ("test_fetch_actions_closes_landing_response_when_form_selection_fails" in test_main
-         and test_main.count("browser.landing_response.close_calls, 1") == 2
+         and test_main.count("browser.landing_response.close_calls, 1") >= 2
          and "self.assertEqual(len(browser.opens), 1)" in test_main,
          "tests must cover landing response closure on success and form-selection failure"),
         ("Landing response closure releases" in readme
@@ -393,7 +400,8 @@ python-memcached>=1.59,<2
          and "not isinstance(candidates, Sequence)" in main_source
          and "isinstance(candidates, (bytes, bytearray))" in main_source
          and "not server.strip()" in main_source
-         and "return [server.strip() for server in candidates]" in main_source
+         and "return [_normalize_memcache_server(server.strip()) for server in candidates]" in main_source
+         and "def _normalize_memcache_server(server: str) -> str:" in main_source
          and main_source.find("servers = _normalize_memcache_servers(configured_servers)")
              < main_source.find('memcache = importlib.import_module("memcache")'),
          "create_cache must normalize and validate memcache endpoints before client import"),
@@ -401,7 +409,8 @@ python-memcached>=1.59,<2
          and "test_create_cache_normalizes_server_sequence" in test_main
          and "test_create_cache_uses_nonblank_environment_override" in test_main
          and "test_create_cache_ignores_blank_environment_override" in test_main
-         and "test_create_cache_rejects_blank_or_unsupported_server_settings" in test_main,
+         and "test_create_cache_rejects_blank_or_unsupported_server_settings" in test_main
+         and "test_create_cache_rejects_malformed_server_endpoints" in test_main,
          "tests must cover memcache endpoint normalization and rejection"),
         ("DEFAULT_MEMCACHE_TIMEOUT = 5.0" in main_source
          and "MAX_MEMCACHE_TIMEOUT = 300.0" in main_source
@@ -481,8 +490,9 @@ python-memcached>=1.59,<2
          and main_source.find("return extract_actions(response_body, encoding=settings.encoding)")
              > main_source.find("response_body = _read_bounded_response(response)"),
          "fetch_actions must bound the selected response before decoding and parsing"),
-        ("if settings.form_url:\n        response.close()\n        response = browser.open(" in main_source
-         and "try:\n        response_body = _read_bounded_response(response)\n    finally:\n        response.close()" in main_source,
+        ("if settings.form_url:" in main_source
+         and "with _closing_response(response) as submission_response:" in main_source
+         and "with _closing_response(response):" in main_source,
          "fetch_actions must close superseded and selected scrape responses"),
         ("test_read_bounded_response_accepts_exact_limit" in test_main
          and "test_read_bounded_response_rejects_one_byte_over_limit" in test_main

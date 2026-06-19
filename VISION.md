@@ -18,7 +18,8 @@ artifact cleanup, action parsing, email body generation, cache comparison,
 settings validation, scrape settings validation, notification delivery, SMTP
 environment configuration, SMTP numeric setting validation, and SMTP TLS/login
 setup, SMTP STARTTLS certificate verification, SMTP header validation, and
-nested action parser depth.
+nested action parser depth, configured-origin navigation, and cleanup error
+precedence.
 
 The current focus is:
 
@@ -28,21 +29,27 @@ Priority:
 - Keep site/form settings and SMTP credentials out of git
 - Keep scrape settings validation strict enough to reject blank live-run targets
 - Keep scrape URL validation strict enough to reject non-HTTP(S) live-run targets
+- Keep form actions and final redirects on explicitly configured HTTP(S) origins
+- Keep request header values free of control characters
 - Keep scrape encoding validation strict enough to reject unknown response codecs
 - Keep nested action parser depth balanced across ordinary inner containers
+- Keep action-container nesting bounded before parser state can grow pathologically
 - Keep SMTP ports within `1..65535`, SMTP timeouts finite and at most 300
   seconds, and validation errors free of raw configuration values
 - Keep SMTP recipient normalization before opening outbound SMTP connections
 - Keep SMTP header validation before opening outbound SMTP connections
 - Keep SMTP STARTTLS certificate verification on the exact context created by
   Python's secure client defaults before authentication
+- Keep partial SMTP refusals visible and preserve primary SMTP errors during cleanup
 - Keep robot setting validation strict enough that typos fail closed
 - Keep the 15-second scrape request timeout on every mechanize network open
 - Keep the 1 MiB scrape response body limit before decoding and parsing
 - Keep scrape short-read handling within one fixed total response budget
 - Keep scrape response closure deterministic across replacement and read errors
+- Keep response cleanup from masking primary HTTP or parser failures
 - Keep landing response closure deterministic across form preparation failures
 - Keep memcache server normalization ahead of optional client construction
+- Keep memcache TCP endpoints structurally validated before client import
 - Keep the memcache socket timeout finite, positive, no greater than 300
   seconds, and applied before optional client construction
 - Avoid ignoring robots or site terms without explicit documentation
