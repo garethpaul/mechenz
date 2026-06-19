@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 import RoyalMail
 
@@ -16,14 +17,15 @@ class FakeSMTP:
     def ehlo(self):
         self.calls.append(("ehlo",))
 
-    def starttls(self):
-        self.calls.append(("starttls",))
+    def starttls(self, *, context):
+        self.calls.append(("starttls", context))
 
     def login(self, login, password):
         self.calls.append(("login", login, password))
 
     def sendmail(self, sender, recipients, message):
         self.calls.append(("sendmail", sender, recipients, message))
+        return {}
 
     def close(self):
         self.calls.append(("close",))
@@ -152,12 +154,43 @@ class RoyalMailTests(unittest.TestCase):
 
         smtp = FakeSMTP.instances[0]
         self.assertEqual((smtp.host, smtp.port, smtp.timeout), ("smtp.example.com", 2525, 5))
-        self.assertIn(("starttls",), smtp.calls)
+        self.assertEqual([call[0] for call in smtp.calls].count("starttls"), 1)
         self.assertIn(("login", "sender@example.com", "secret"), smtp.calls)
         sendmail_call = [call for call in smtp.calls if call[0] == "sendmail"][0]
         self.assertEqual(sendmail_call[1], "sender@example.com")
         self.assertEqual(sendmail_call[2], ["to@example.com"])
         self.assertIn("Subject", sendmail_call[3])
+
+    def test_send_mail_passes_default_context_to_starttls_before_login(self):
+        tls_context = object()
+        settings = RoyalMail.MailSettings(
+            login="sender@example.com",
+            password="secret",
+            host="smtp.example.com",
+            port=2525,
+            timeout=5,
+        )
+
+        with mock.patch.object(
+            RoyalMail.ssl,
+            "create_default_context",
+            return_value=tls_context,
+        ) as context_factory:
+            RoyalMail.send_mail(
+                ["to@example.com"],
+                "Subject",
+                "Body",
+                mail_settings=settings,
+                smtp_factory=FakeSMTP,
+            )
+
+        smtp = FakeSMTP.instances[0]
+        context_factory.assert_called_once_with()
+        self.assertIn(("starttls", tls_context), smtp.calls)
+        self.assertLess(
+            smtp.calls.index(("starttls", tls_context)),
+            smtp.calls.index(("login", "sender@example.com", "secret")),
+        )
 
     def test_send_mail_normalizes_recipients(self):
         settings = RoyalMail.MailSettings(
@@ -243,6 +276,54 @@ class RoyalMailTests(unittest.TestCase):
             )
 
         self.assertEqual(FakeSMTP.instances, [])
+
+    def test_send_mail_rejects_partial_recipient_refusals(self):
+        class PartiallyRefusingSMTP(FakeSMTP):
+            def sendmail(self, sender, recipients, message):
+                super().sendmail(sender, recipients, message)
+                return {"refused@example.com": (550, b"no such user")}
+
+        settings = RoyalMail.MailSettings(
+            login="sender@example.com",
+            password="secret",
+            host="smtp.example.com",
+            port=2525,
+            timeout=5,
+        )
+
+        with self.assertRaises(RoyalMail.smtplib.SMTPRecipientsRefused):
+            RoyalMail.send_mail(
+                ["accepted@example.com", "refused@example.com"],
+                "Subject",
+                "Body",
+                mail_settings=settings,
+                smtp_factory=PartiallyRefusingSMTP,
+            )
+
+    def test_send_mail_preserves_primary_error_when_close_fails(self):
+        class FailingSMTP(FakeSMTP):
+            def login(self, username, password):
+                raise OSError("authentication transport failed")
+
+            def close(self):
+                raise OSError("close failed")
+
+        settings = RoyalMail.MailSettings(
+            login="sender@example.com",
+            password="secret",
+            host="smtp.example.com",
+            port=2525,
+            timeout=5,
+        )
+
+        with self.assertRaisesRegex(OSError, "authentication transport failed"):
+            RoyalMail.send_mail(
+                ["to@example.com"],
+                "Subject",
+                "Body",
+                mail_settings=settings,
+                smtp_factory=FailingSMTP,
+            )
 
 
 if __name__ == "__main__":

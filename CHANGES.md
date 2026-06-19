@@ -1,7 +1,57 @@
 # Changes
 
+## 2026-06-19
+
+- Restricted mechanize form actions and final redirects to configured HTTP(S)
+  origins, rejected unsafe authorities and request-header controls, and bounded
+  action-container nesting.
+- Preserved primary HTTP and SMTP failures when cleanup also fails, rejected
+  partial SMTP recipient refusals, and structurally validated memcache endpoints.
+- Added fake-network regression coverage and seven isolated hostile mutations.
+
+## 2026-06-17
+
+- Added a bounded memcache socket timeout with a 5-second default, validated
+  environment/settings overrides, and sanitized invalid-value failures.
+
+## 2026-06-16
+
+- Added SMTP STARTTLS certificate verification with Python's default client TLS
+  context before authentication.
+
+## 2026-06-15
+
+- Closed landing-page responses before form submission and on form-preparation failures.
+- Added scrape short-read handling so partial response reads are accumulated
+  without exceeding the existing response-size budget.
+- Added deterministic scrape response closure for replaced, completed, and
+  failed bounded reads.
+
+## 2026-06-14
+
+- Added a 1 MiB scrape response body limit before decoding and action parsing.
+- Added memcache server normalization so single strings remain one endpoint and
+  blank or unsupported collections fail before client construction.
+- Added a 15-second scrape request timeout to every mechanize network open,
+  including form submission.
+
+## 2026-06-13
+
+- Made tests, compilation, static checks, formatting checks, and generated-file
+  cleanup resolve from the checkout for absolute Makefile invocations.
+- Corrected nested action parser depth so ordinary inner containers cannot
+  end an action before its first span is read.
+
+## 2026-06-12
+
+- Stopped the hosted checkout from persisting its credential and added an exact
+  static contract for the sole workflow, permissions, and checkout step.
+
 ## 2026-06-10
 
+- Added a reviewed five-package Python 3.12 constraints graph for hosted
+  dependency resolution, with exact workflow, cache, documentation, and plan
+  contracts. Version constraints do not authenticate package artifacts.
 - Bounded SMTP ports to `1..65535` and SMTP timeouts to finite values no
   greater than 300 seconds.
 - Added pinned, read-only Python 3.12 hosted validation for dependency

@@ -4,14 +4,23 @@ from __future__ import annotations
 
 import codecs
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date
 from html.parser import HTMLParser
 import importlib
+import ipaddress
+import math
 import os
 from urllib.parse import urlparse
 
 import RoyalMail
+
+SCRAPE_REQUEST_TIMEOUT = 15
+MAX_SCRAPE_RESPONSE_BYTES = 1024 * 1024
+MAX_ACTION_DIV_NESTING = 256
+DEFAULT_MEMCACHE_TIMEOUT = 5.0
+MAX_MEMCACHE_TIMEOUT = 300.0
 
 
 @dataclass(frozen=True)
@@ -38,9 +47,14 @@ class ActionParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
-        if tag == "div" and "action" in attributes.get("class", "").split():
-            self._action_depth += 1
-            self._captured_for_action = False
+        if tag == "div":
+            if self._action_depth:
+                if self._action_depth >= MAX_ACTION_DIV_NESTING:
+                    raise ValueError("HTML nesting exceeds configured limit")
+                self._action_depth += 1
+            elif "action" in attributes.get("class", "").split():
+                self._action_depth = 1
+                self._captured_for_action = False
             return
 
         if tag == "span" and self._action_depth and not self._captured_for_action:
@@ -114,14 +128,29 @@ def fetch_actions(settings: ScrapeSettings, browser_factory=None) -> list[str]:
         ("Referer", settings.fake_referer),
     ]
     browser.set_handle_robots(settings.respect_robots)
-    browser.open(settings.site)
-    browser.select_form(nr=0)
-    for key, value in settings.form.items():
-        browser.form[key] = value
-    response = browser.submit()
+    allowed_origins = {_http_origin(settings.site)}
     if settings.form_url:
-        response = browser.open(settings.form_url)
-    return extract_actions(response.read(), encoding=settings.encoding)
+        allowed_origins.add(_http_origin(settings.form_url))
+
+    with _closing_response(
+        browser.open(settings.site, timeout=SCRAPE_REQUEST_TIMEOUT)
+    ) as landing_response:
+        _validate_response_navigation(landing_response, allowed_origins)
+        browser.select_form(nr=0)
+        for key, value in settings.form.items():
+            browser.form[key] = value
+        submission_request = browser.click()
+        _validate_navigation_target(submission_request, allowed_origins)
+
+    response = browser.open(submission_request, timeout=SCRAPE_REQUEST_TIMEOUT)
+    if settings.form_url:
+        with _closing_response(response) as submission_response:
+            _validate_response_navigation(submission_response, allowed_origins)
+        response = browser.open(settings.form_url, timeout=SCRAPE_REQUEST_TIMEOUT)
+    with _closing_response(response):
+        _validate_response_navigation(response, allowed_origins)
+        response_body = _read_bounded_response(response)
+    return extract_actions(response_body, encoding=settings.encoding)
 
 
 def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -> ScrapeSettings:
@@ -154,6 +183,17 @@ def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -
     if invalid_urls:
         raise ValueError("invalid scrape settings: " + ", ".join(invalid_urls))
 
+    invalid_headers = []
+    if not _valid_header_value(required_values["fake_user_agent"]):
+        invalid_headers.append("fake_user_agent")
+    if (
+        not _valid_header_value(required_values["fake_referer"])
+        or not _valid_http_url(required_values["fake_referer"])
+    ):
+        invalid_headers.append("fake_referer")
+    if invalid_headers:
+        raise ValueError("invalid scrape settings: " + ", ".join(invalid_headers))
+
     respect_robots = _parse_bool_setting("respect_robots", getattr(settings_module, "respect_robots", True), default=True)
     ignore_robots_value = env.get("MECHENZ_IGNORE_ROBOTS")
     if ignore_robots_value is None or not str(ignore_robots_value).strip():
@@ -175,15 +215,41 @@ def load_scrape_settings(settings_module, env: Mapping[str, str] = os.environ) -
     )
 
 
+def _read_bounded_response(response) -> bytes:
+    chunks = []
+    remaining = MAX_SCRAPE_RESPONSE_BYTES + 1
+    while remaining > 0:
+        chunk = response.read(remaining)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+
+    body = b"".join(chunks)
+    if len(body) > MAX_SCRAPE_RESPONSE_BYTES:
+        raise ValueError("scrape response exceeds configured size limit")
+    return body
+
+
 def load_settings_module():
     return importlib.import_module("settings")
 
 
 def create_cache(env: Mapping[str, str] = os.environ, settings_module=None):
-    memcache = importlib.import_module("memcache")
     server = env.get("MEMCACHE_SERVER")
-    servers = [server] if server else list(getattr(settings_module, "memcache_servers", ["127.0.0.1:11211"]))
-    return memcache.Client(servers, debug=0)
+    configured_servers = server if server is not None and str(server).strip() else getattr(
+        settings_module, "memcache_servers", ["127.0.0.1:11211"]
+    )
+    servers = _normalize_memcache_servers(configured_servers)
+    timeout = env.get("MEMCACHE_TIMEOUT")
+    configured_timeout = timeout if timeout is not None and str(timeout).strip() else getattr(
+        settings_module, "memcache_timeout", DEFAULT_MEMCACHE_TIMEOUT
+    )
+    if configured_timeout is None or not str(configured_timeout).strip():
+        configured_timeout = DEFAULT_MEMCACHE_TIMEOUT
+    socket_timeout = _parse_memcache_timeout(configured_timeout)
+    memcache = importlib.import_module("memcache")
+    return memcache.Client(servers, debug=0, socket_timeout=socket_timeout)
 
 
 def get_data(data, cache=None, settings_module=None):
@@ -231,9 +297,140 @@ def _parse_bool_setting(name: str, value, default: bool = False) -> bool:
     raise ValueError(f"invalid {name}")
 
 
+def _normalize_memcache_servers(value) -> list[str]:
+    candidates = [value] if isinstance(value, str) else value
+    if not isinstance(candidates, Sequence) or isinstance(candidates, (bytes, bytearray)):
+        raise ValueError("memcache_servers must be a string or sequence of strings")
+
+    if not candidates or any(not isinstance(server, str) or not server.strip() for server in candidates):
+        raise ValueError("memcache_servers must contain non-empty strings")
+
+    return [_normalize_memcache_server(server.strip()) for server in candidates]
+
+
+def _parse_memcache_timeout(value) -> float:
+    try:
+        timeout = float(value)
+    except (TypeError, ValueError):
+        raise ValueError("invalid MEMCACHE_TIMEOUT") from None
+    if not math.isfinite(timeout) or timeout <= 0 or timeout > MAX_MEMCACHE_TIMEOUT:
+        raise ValueError("invalid MEMCACHE_TIMEOUT")
+    return timeout
+
+
 def _valid_http_url(value: str) -> bool:
+    try:
+        parsed = urlparse(value)
+        port = parsed.port
+    except ValueError:
+        return False
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or any(character.isspace() or ord(character) < 32 for character in value)
+    ):
+        return False
+    hostname = parsed.hostname.rstrip(".").lower()
+    if hostname == "localhost" or hostname.endswith(".localhost"):
+        return False
+    try:
+        address = ipaddress.ip_address(hostname)
+    except ValueError:
+        address = None
+    if address is not None and not address.is_global:
+        return False
+    return port is None or 0 < port <= 65535
+
+
+def _http_origin(value: str) -> tuple[str, str, int]:
+    if not _valid_http_url(value):
+        raise ValueError("unsafe scrape navigation")
     parsed = urlparse(value)
-    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    return parsed.scheme, parsed.hostname.rstrip(".").lower(), port
+
+
+def _navigation_url(target) -> str:
+    if isinstance(target, str):
+        return target
+    get_full_url = getattr(target, "get_full_url", None)
+    if not callable(get_full_url):
+        raise ValueError("unsafe scrape navigation")
+    return get_full_url()
+
+
+def _validate_navigation_target(target, allowed_origins) -> None:
+    if _http_origin(_navigation_url(target)) not in allowed_origins:
+        raise ValueError("unsafe scrape navigation")
+
+
+def _validate_response_navigation(response, allowed_origins) -> None:
+    geturl = getattr(response, "geturl", None)
+    if not callable(geturl):
+        raise ValueError("unsafe scrape navigation")
+    _validate_navigation_target(geturl(), allowed_origins)
+
+
+@contextmanager
+def _closing_response(response):
+    try:
+        yield response
+    except BaseException:
+        try:
+            response.close()
+        except BaseException:
+            pass
+        raise
+    else:
+        response.close()
+
+
+def _normalize_memcache_server(server: str) -> str:
+    if server.startswith("unix:") or server.startswith("/"):
+        path = server[5:] if server.startswith("unix:") else server
+        if (
+            not path.startswith("/")
+            or any(character.isspace() or ord(character) < 32 for character in path)
+        ):
+            raise ValueError("memcache_servers contains an invalid endpoint")
+        return "unix:" + path
+    if server.startswith("inet6:"):
+        endpoint = server[6:]
+        try:
+            parsed = urlparse("//" + endpoint)
+            port = parsed.port
+            address = ipaddress.IPv6Address(parsed.hostname or "")
+        except (ValueError, ipaddress.AddressValueError):
+            raise ValueError("memcache_servers contains an invalid endpoint") from None
+        if port is None or not 0 < port <= 65535 or parsed.path or parsed.query or parsed.fragment:
+            raise ValueError("memcache_servers contains an invalid endpoint")
+        return f"inet6:[{address.compressed}]:{port}"
+    if "://" in server or any(character.isspace() or ord(character) < 32 for character in server):
+        raise ValueError("memcache_servers contains an invalid endpoint")
+    try:
+        parsed = urlparse("//" + server)
+        port = parsed.port
+    except ValueError:
+        raise ValueError("memcache_servers contains an invalid endpoint") from None
+    if (
+        not parsed.hostname
+        or port is None
+        or not 0 < port <= 65535
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("memcache_servers contains an invalid endpoint")
+    hostname = parsed.hostname.rstrip(".")
+    if not hostname:
+        raise ValueError("memcache_servers contains an invalid endpoint")
+    if ":" in hostname:
+        hostname = f"[{hostname}]"
+    return f"{hostname}:{port}"
 
 
 def _parse_encoding_setting(name: str, value, default: str = "utf-8") -> str:
@@ -245,6 +442,10 @@ def _parse_encoding_setting(name: str, value, default: str = "utf-8") -> str:
     except LookupError:
         raise ValueError(f"invalid {name}") from None
     return encoding
+
+
+def _valid_header_value(value: str) -> bool:
+    return not any(ord(character) < 32 or ord(character) == 127 for character in value)
 
 
 if __name__ == "__main__":

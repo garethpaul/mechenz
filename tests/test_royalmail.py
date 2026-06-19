@@ -20,8 +20,8 @@ class FakeSMTP:
     def ehlo(self):
         self.calls.append(("ehlo",))
 
-    def starttls(self):
-        self.calls.append(("starttls",))
+    def starttls(self, *, context):
+        self.calls.append(("starttls", context))
 
     def login(self, username, password):
         self.calls.append(("login", username, password))
@@ -47,7 +47,9 @@ class RoyalMailTests(unittest.TestCase):
             smtp_factory=lambda *args, **kwargs: smtp,
         )
 
-        self.assertIn(("starttls",), smtp.calls)
+        starttls_call = [call for call in smtp.calls if call[0] == "starttls"][0]
+        self.assertTrue(starttls_call[1].check_hostname)
+        self.assertEqual(starttls_call[1].verify_mode, RoyalMail.ssl.CERT_REQUIRED)
         self.assertIn(("login", "sender@example.com", "test-password"), smtp.calls)
         send_call = [call for call in smtp.calls if call[0] == "sendmail"][0]
         self.assertEqual(send_call[1], "sender@example.com")

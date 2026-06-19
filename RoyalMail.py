@@ -10,6 +10,7 @@ from email.utils import COMMASPACE, formatdate
 import math
 import os
 import smtplib
+import ssl
 from typing import Optional
 
 
@@ -85,14 +86,23 @@ def send_mail(
     message["Subject"] = subject
     message.attach(MIMEText(text, "plain", "utf-8"))
 
+    tls_context = ssl.create_default_context()
     server = smtp_factory(settings.host, settings.port, timeout=settings.timeout)
     try:
         server.ehlo()
-        server.starttls()
+        server.starttls(context=tls_context)
         server.ehlo()
         server.login(settings.login, settings.password)
-        server.sendmail(settings.login, recipients, message.as_string())
-    finally:
+        refused = server.sendmail(settings.login, recipients, message.as_string())
+        if refused:
+            raise smtplib.SMTPRecipientsRefused(refused)
+    except BaseException:
+        try:
+            server.close()
+        except BaseException:
+            pass
+        raise
+    else:
         server.close()
 
 

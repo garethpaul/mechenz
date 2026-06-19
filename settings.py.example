@@ -13,6 +13,7 @@ respect_robots = True
 encoding = "utf-8"
 
 memcache_servers = ["127.0.0.1:11211"]
+memcache_timeout = 5
 
 smtp_login = "smtp-user@example.com"
 smtp_password = ""

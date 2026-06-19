@@ -16,7 +16,8 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 - `Makefile` - local verification entry point
 - `RoyalMail.py` - SMTP notification helper
 - `main.py` - scraper, parser, cache comparison, and notification flow
-- `requirements.txt` - live-run dependency metadata
+- `requirements.txt` - live-run dependency compatibility ranges
+- `constraints.txt` - reviewed exact dependency graph used by CI
 - `settings.py.example` - local settings template without secrets
 - `tests` - offline unit tests for parsing, cache comparison, and SMTP setup
 - `SECURITY.md` - security reporting and disclosure guidance
@@ -25,7 +26,7 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 Additional scan context:
 
 - Source files: main.py, RoyalMail.py
-- Dependency and build manifests: Makefile, requirements.txt
+- Dependency and build manifests: Makefile, requirements.txt, constraints.txt
 - Entry points or build surfaces: `make lint`, `make test`, `make build`, `make check`, main.py
 - Test-looking files: tests/test_main.py, tests/test_royal_mail.py, tests/test_royalmail.py
 
@@ -56,7 +57,7 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Install live-run dependencies when you are ready to poll a real site:
 
 ```bash
-python3 -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt -c constraints.txt
 ```
 
 - Fill in `settings.py` locally, start memcached, export SMTP credentials, and run:
@@ -70,14 +71,26 @@ python3 main.py
 ## Testing and Verification
 
 - `make lint` runs the static baseline and repository guardrails.
-- `make test` runs `python3 -m unittest discover -s tests`.
+- `make test` runs the offline unit suite and isolated hostile mutations.
 - `make build` compiles the Python modules.
 - `make check` cleans generated Python artifacts, then runs lint, test, and build.
+- The Make gates are location-independent. From another directory, pass the
+  checkout's Makefile by absolute path, such as
+  `make -f /path/to/mechenz/Makefile check`.
 - The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
-- Pinned `ubuntu-24.04` GitHub Actions installs `requirements.txt`, runs
-  `pip check`, and executes `make check` on Python 3.12. Hosted tests remain
-  offline and do not scrape target sites, connect to memcached, authenticate to
-  SMTP, or send email.
+- SMTP STARTTLS certificate verification uses Python's default client TLS
+  context so trusted certificate authorities and hostname checks apply before
+  credentials are submitted.
+- Action parsing keeps nested container depth balanced so an ordinary inner
+  `div` cannot hide the first span that follows it, and rejects more than 256
+  nested action containers.
+- Pinned `ubuntu-24.04` GitHub Actions installs `requirements.txt` through the
+  reviewed versions in `constraints.txt`, runs
+  `pip check`, and executes `make check` on Python 3.12 through a read-only,
+  credential-free checkout. Hosted tests remain offline and do not scrape
+  target sites, connect to memcached, authenticate to SMTP, or send email.
+- The constraints freeze the reviewed direct and transitive versions, but they
+  do not authenticate downloaded artifacts with hashes.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 
@@ -86,12 +99,34 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Keep `settings.py`, SMTP credentials, target-site secrets, `.env` files, logs, and scraped private data out of git.
 - Use `settings.py.example` only as a placeholder template with fake values.
 - Scrape settings validation rejects blank job names, recipients, target sites, fake user agents, and fake referers before a live run.
-- Scrape URL validation rejects non-HTTP(S) target and result URLs before a live run.
+- Scrape URL validation rejects non-HTTP(S), credential-bearing, malformed,
+  localhost, and non-public literal-IP target and result URLs before a live run.
+- Form actions and final redirect URLs must remain on an explicitly configured
+  HTTP(S) origin; request user-agent and referer values reject control characters.
+- A 15-second scrape request timeout bounds the initial page, form submission,
+  and optional result-page fetch.
+- A 1 MiB scrape response body limit rejects oversized result pages before
+  decoding or action parsing.
+- Scrape short-read handling accumulates partial stream reads within the same
+  bounded budget so result pages are not silently truncated.
+- Scrape response closure releases a superseded submission response before an
+  optional result fetch and always closes the selected response after reading
+  without replacing an active form or read failure with a cleanup failure.
+- Landing response closure releases the initial page before opening the form
+  submission and also closes it when form preparation fails.
+- Memcache server normalization accepts one endpoint or a nonblank endpoint
+  sequence, parses TCP host/port boundaries, preserves absolute Unix sockets,
+  and rejects malformed configuration before the optional client is imported.
+- Memcache socket timeout handling defaults to 5 seconds, accepts a finite
+  positive `MEMCACHE_TIMEOUT` or local `memcache_timeout` value up to 300
+  seconds, and validates it before importing or constructing the client.
 - SMTP numeric setting validation restricts ports to `1..65535` and timeouts to
   finite values no greater than 300 seconds without echoing raw configuration.
 - SMTP recipient normalization strips recipient addresses and rejects all-blank recipient lists before opening SMTP connections.
 - SMTP header validation rejects CRLF in sender, recipient, or subject values
   before opening SMTP connections.
+- SMTP delivery treats partial recipient refusals as failures and preserves
+  primary TLS, authentication, or delivery errors if connection cleanup fails.
 - Robot setting validation rejects ambiguous `respect_robots` and `MECHENZ_IGNORE_ROBOTS` values without echoing raw configuration values.
 - Scrape encoding validation rejects unknown response encodings before a live
   run without echoing raw configuration values.
@@ -104,8 +139,16 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Review changes that scrape live sites, disable robot handling, store scraped data, or send email.
 - Keep scrape settings validation in place so blank target or recipient settings fail before live scraping or email delivery.
 - Keep scrape URL validation in place so malformed or non-HTTP(S) targets fail before mechanize opens them.
+- Keep configured-origin checks on form actions and final redirects so a target
+  page cannot steer mechanize to an unconfigured origin.
 - Keep robot setting validation in place so typos do not silently disable robot handling.
 - Keep scrape encoding validation in place so invalid response codec names fail before live scraping.
+- Keep the scrape response body limit ahead of decoding and parser execution.
+- Keep scrape short-read handling inside the total response byte budget.
+- Keep scrape response closure on direct, replacement, and read-failure paths.
+- Keep landing response closure on successful and failed form-preparation paths.
+- Keep nested action parser depth coverage in place when changing response
+  selectors or fixture shapes.
 - Keep SMTP header validation in place so sender, recipient, and subject values
   cannot inject additional mail headers.
 - Tests should use fixtures and injected fakes, not live target sites, memcache, or SMTP.
@@ -113,11 +156,14 @@ When the required SDK or runtime is unavailable, use static checks and source re
 ## Maintenance Notes
 
 - Run `make lint`, `make test`, `make build`, and `make check` before pushing scraper, parser, mailer, dependency, settings-template, or documentation changes.
+- Use an absolute Makefile path when running those gates outside the checkout.
 - See `docs/plans/2026-06-08-mechenz-baseline.md` for the current baseline plan.
 - See `docs/plans/2026-06-09-make-gate-targets.md` for the local gate target guardrail.
 - See `docs/plans/2026-06-09-mail-settings-validation.md` for the SMTP numeric setting validation guard.
 - See `docs/plans/2026-06-09-scrape-url-validation.md` for the scrape URL validation guard.
 - See `docs/plans/2026-06-10-scrape-encoding-validation.md` for the scrape encoding validation guard.
+- See `docs/plans/2026-06-13-nested-action-parser.md` for the nested action
+  parser depth guard.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 
