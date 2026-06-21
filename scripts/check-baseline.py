@@ -21,7 +21,7 @@ override MAKEFILES :=
 ifneq ($(origin MAKEFILE_LIST),file)
 $(error MAKEFILE_LIST must not be overridden)
 endif
-override ROOT := $(shell MAKEFILE_LIST_RAW='$(subst ','"'"',$(MAKEFILE_LIST))' python3 -c "import os, shlex; path = os.environ['MAKEFILE_LIST_RAW']; marker = ' /'; path = '/' + path.rsplit(marker, 1)[1] if marker in path else path; print(shlex.quote(os.path.dirname(path) or '.'))")
+override ROOT := $(shell MAKEFILE_LIST_RAW='$(subst ','"'"',$(MAKEFILE_LIST))' python3 -c "import os, shlex; raw = os.environ['MAKEFILE_LIST_RAW']; candidates = [raw] + [raw[index + 1:] for index, char in enumerate(raw) if char == ' ']; path = next((candidate for candidate in candidates if (candidate == 'Makefile' or candidate.endswith('/Makefile')) and os.path.isfile(os.path.abspath(candidate))), None); assert path is not None, 'trusted Makefile path not found'; print(shlex.quote(os.path.dirname(os.path.abspath(path))))")
 build check clean compile fmt lint mutation-test static-check test unit-test: override ROOT := $(ROOT)
 
 .PHONY: build check clean compile fmt lint mutation-test static-check test unit-test
@@ -212,15 +212,25 @@ def inert_extra_makefile_cannot_poison_root(makefile: str) -> bool:
         early.write_text("# inert caller makefile\n", encoding="utf-8")
         write_minimal_make_checkout(checkout, makefile, "real")
 
-        result = subprocess.run(
+        absolute_result = subprocess.run(
             ["make", "-f", str(early), "-f", str(checkout / "Makefile"), "check"],
             cwd=external,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+        relative_result = subprocess.run(
+            ["make", "-f", str(early), "-f", "Makefile", "check"],
+            cwd=checkout,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
-        return result_used_checkout(result, checkout, "real")
+        return (
+            result_used_checkout(absolute_result, checkout, "real")
+            and result_used_checkout(relative_result, checkout, "real")
+        )
 
 
 def makefiles_preload_is_rejected(makefile: str) -> bool:

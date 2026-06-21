@@ -9,9 +9,9 @@ absolute `make -f` workflow failed when the checkout path contained spaces.
 
 ## Change
 
-1. Derive the root from the raw Makefile path with Python `shlex` quoting and
-   the last absolute Makefile path, so inert earlier `-f` files do not poison
-   the checkout root.
+1. Derive the root from the final existing trusted Makefile suffix with Python
+   `shlex` quoting, so inert earlier `-f` files do not poison either absolute
+   or relative repository Makefile invocations.
 2. Freeze the derived `ROOT` for every checked-in gate target so a later
    duplicate global `override ROOT` cannot redirect `make check` before the real
    policy executes.
@@ -33,6 +33,6 @@ absolute `make -f` workflow failed when the checkout path contained spaces.
   environment `MAKEFILE_LIST` attacks failed closed.
 - `MAKEFILES` preload attacks failed closed, caller `SHELL` overrides did not
   replace the recipe shell, and an inert earlier `-f` file did not poison root
-  derivation.
+  derivation for absolute or relative trusted Makefile paths.
 - No SMTP, memcache, scraping target, credential, or live network service was
   used by the path-resolution regression.

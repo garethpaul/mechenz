@@ -2,6 +2,9 @@
 
 ## 2026-06-21
 
+- Corrected trusted-root discovery when an inert absolute `-f` input precedes
+  a relative repository `Makefile`.
+
 - Made absolute external Makefile invocations work when checkout paths contain
   spaces or a literal apostrophe while rejecting `ROOT` and `MAKEFILE_LIST`
   attempts to redirect verification.
