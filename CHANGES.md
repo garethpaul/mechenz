@@ -2,9 +2,16 @@
 
 ## 2026-06-21
 
+- Corrected trusted-root discovery when an inert absolute `-f` input precedes
+  a relative repository `Makefile`.
+
 - Made absolute external Makefile invocations work when checkout paths contain
   spaces or a literal apostrophe while rejecting `ROOT` and `MAKEFILE_LIST`
   attempts to redirect verification.
+- Hardened the hosted `make check` entrypoint so a later duplicate
+  `override ROOT` cannot redirect recipes before the real policy runs; rejected
+  `MAKEFILES`, ignored caller `SHELL`, and documented extra makefiles as
+  caller-supplied code.
 
 ## 2026-06-19
 
