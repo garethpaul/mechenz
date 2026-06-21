@@ -2,12 +2,19 @@
 """Static baseline checks for the Mechenz sample."""
 
 from pathlib import Path
+import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_MAKEFILE = """override ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+EXPECTED_MAKEFILE = """ifneq ($(origin MAKEFILE_LIST),file)
+$(error MAKEFILE_LIST must not be overridden)
+endif
+override ROOT := $(shell path='$(subst ','"'"',$(MAKEFILE_LIST))'; path=$$(printf '%s\\n' "$$path" | sed 's/^ //'); dirname -- "$$path")
 
 .PHONY: build check clean compile fmt lint mutation-test static-check test unit-test
 
@@ -76,6 +83,7 @@ REQUIRED = [
     "docs/plans/2026-06-15-landing-response-closure.md",
     "docs/plans/2026-06-16-smtp-starttls-verification.md",
     "docs/plans/2026-06-17-memcache-socket-timeout.md",
+    "docs/plans/2026-06-21-spaced-makefile-path.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -92,6 +100,56 @@ def markdown_section(text: str, heading: str) -> str:
         text,
     )
     return match.group(1).strip() if match else ""
+
+
+def makefile_path_resolution_is_safe(makefile: str) -> bool:
+    if not shutil.which("make"):
+        return False
+
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        temporary_root = Path(temporary_directory)
+        checkout = temporary_root / "checkout with spaces 'quoted' [hostile]"
+        external = temporary_root / "external caller"
+        checkout.mkdir()
+        external.mkdir()
+        (checkout / "Makefile").write_text(makefile, encoding="utf-8")
+
+        for target in ("check", "lint", "test", "build", "clean", "fmt", "static-check"):
+            for extra_arguments in ((), ("ROOT=/tmp/untrusted",), ("-e", "ROOT=/tmp/untrusted")):
+                result = subprocess.run(
+                    ["make", "--dry-run", "-f", str(checkout / "Makefile"),
+                     *extra_arguments, target],
+                    cwd=external,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                if (result.returncode != 0 or str(checkout) not in result.stdout or
+                        "/tmp/untrusted/" in result.stdout):
+                    return False
+
+        environment = os.environ.copy()
+        environment["MAKEFILE_LIST"] = "/tmp/untrusted"
+        attacks = (
+            (["make", "--dry-run", "-f", str(checkout / "Makefile"),
+              "MAKEFILE_LIST=/tmp/untrusted", "check"], None),
+            (["make", "-e", "--dry-run", "-f", str(checkout / "Makefile"), "check"],
+             environment),
+        )
+        for command, attack_environment in attacks:
+            result = subprocess.run(
+                command,
+                cwd=external,
+                env=attack_environment,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            if (result.returncode == 0 or
+                    "MAKEFILE_LIST must not be overridden" not in result.stderr):
+                return False
+
+    return True
 
 
 def main() -> int:
@@ -169,6 +227,9 @@ def main() -> int:
     ).read_text(encoding="utf-8")
     memcache_timeout_plan = (
         ROOT / "docs/plans/2026-06-17-memcache-socket-timeout.md"
+    ).read_text(encoding="utf-8")
+    spaced_make_plan = (
+        ROOT / "docs/plans/2026-06-21-spaced-makefile-path.md"
     ).read_text(encoding="utf-8")
     constraints = (ROOT / "constraints.txt").read_text(encoding="utf-8")
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
@@ -361,12 +422,20 @@ python-memcached>=1.59,<2
          "dependency constraints plan must preserve finished exact-head verification evidence"),
         (makefile == EXPECTED_MAKEFILE,
          "Makefile must exactly preserve rooted lint, test, build, check, clean, and fmt gates"),
+        (makefile_path_resolution_is_safe(makefile),
+         "Make gates must preserve hostile spaced checkout paths and reject root metadata overrides"),
         ("make -f /path/to/mechenz/Makefile check" in readme,
          "README must document location-independent Makefile invocation"),
+        ("paths contain spaces" in readme and "MAKEFILE_LIST" in readme,
+         "README must document spaced paths and protected Makefile metadata"),
         ("status: completed" in location_independent_make_plan
          and "root and external-directory" in location_independent_make_plan
          and "eight isolated hostile mutations" in location_independent_make_plan,
          "location-independent Make plan must record completed root, external, and mutation verification"),
+        ("status: completed" in spaced_make_plan
+         and "literal apostrophe" in spaced_make_plan
+         and "MAKEFILE_LIST" in spaced_make_plan,
+         "spaced Makefile path plan must record completed hostile-path verification"),
         ("SCRAPE_REQUEST_TIMEOUT = 15" in main_source
          and main_source.count("timeout=SCRAPE_REQUEST_TIMEOUT") == 3
          and "submission_request = browser.click()" in main_source
