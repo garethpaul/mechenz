@@ -4,6 +4,7 @@
 from pathlib import Path
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -11,10 +12,17 @@ import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_MAKEFILE = """ifneq ($(origin MAKEFILE_LIST),file)
+EXPECTED_MAKEFILE = """override SHELL := /bin/sh
+override .SHELLFLAGS := -c
+ifneq ($(strip $(MAKEFILES)),)
+$(error MAKEFILES must not be set)
+endif
+override MAKEFILES :=
+ifneq ($(origin MAKEFILE_LIST),file)
 $(error MAKEFILE_LIST must not be overridden)
 endif
-override ROOT := $(shell path='$(subst ','"'"',$(MAKEFILE_LIST))'; path=$$(printf '%s\\n' "$$path" | sed 's/^ //'); dirname -- "$$path")
+override ROOT := $(shell MAKEFILE_LIST_RAW='$(subst ','"'"',$(MAKEFILE_LIST))' python3 -c "import os, shlex; path = os.environ['MAKEFILE_LIST_RAW']; marker = ' /'; path = '/' + path.rsplit(marker, 1)[1] if marker in path else path; print(shlex.quote(os.path.dirname(path) or '.'))")
+build check clean compile fmt lint mutation-test static-check test unit-test: override ROOT := $(ROOT)
 
 .PHONY: build check clean compile fmt lint mutation-test static-check test unit-test
 
@@ -25,25 +33,25 @@ lint: static-check
 test: unit-test mutation-test
 
 unit-test:
-\tcd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
+\tcd $(ROOT) && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
 
 mutation-test:
-\tcd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-security-mutations.py
+\tcd $(ROOT) && PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-security-mutations.py
 
 build: compile
 
 compile:
-\tcd "$(ROOT)" && python3 -c "from pathlib import Path; [compile(path.read_text(), str(path), 'exec') for path in [Path('RoyalMail.py'), Path('main.py'), *Path('tests').glob('*.py')]]"
+\tcd $(ROOT) && python3 -c "from pathlib import Path; [compile(path.read_text(), str(path), 'exec') for path in [Path('RoyalMail.py'), Path('main.py'), *Path('tests').glob('*.py')]]"
 
 static-check:
-\tpython3 "$(ROOT)/scripts/check-baseline.py"
+\tpython3 $(ROOT)/scripts/check-baseline.py
 
 clean:
-\tfind "$(ROOT)" -type f \\( -name '*.pyc' -o -name '*.pyo' \\) -delete
-\tfind "$(ROOT)" -type d -name '__pycache__' -prune -exec rm -rf {} +
+\tfind $(ROOT) -type f \\( -name '*.pyc' -o -name '*.pyo' \\) -delete
+\tfind $(ROOT) -type d -name '__pycache__' -prune -exec rm -rf {} +
 
 fmt:
-\tcd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
+\tcd $(ROOT) && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
 """
 REQUIRED = [
     ".gitignore",
@@ -102,6 +110,186 @@ def markdown_section(text: str, heading: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+def write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def write_executable(path: Path, text: str) -> None:
+    write_text(path, text)
+    path.chmod(0o755)
+
+
+def write_minimal_make_checkout(root: Path, makefile: str, label: str) -> None:
+    write_text(root / "Makefile", makefile)
+    write_text(root / "main.py", "VALUE = {!r}\n".format(label))
+    write_text(root / "RoyalMail.py", "VALUE = {!r}\n".format(label))
+    write_executable(
+        root / "scripts/check-baseline.py",
+        "#!/usr/bin/env python3\nprint({!r})\n".format(f"{label} static-check"),
+    )
+    write_executable(
+        root / "scripts/test-security-mutations.py",
+        "#!/usr/bin/env python3\nprint({!r})\n".format(f"{label} mutation-test"),
+    )
+    write_text(
+        root / "tests/test_make_root.py",
+        "from pathlib import Path\n"
+        "import unittest\n\n"
+        "class MakeRootTest(unittest.TestCase):\n"
+        "    def test_marks_root(self):\n"
+        "        Path({!r}).write_text({!r}, encoding='utf-8')\n".format(
+            f"{label}-unit-marker.txt",
+            label,
+        ),
+    )
+
+
+def result_used_checkout(result: subprocess.CompletedProcess, checkout: Path, label: str) -> bool:
+    marker = checkout / f"{label}-unit-marker.txt"
+    return (
+        result.returncode == 0
+        and f"{label} static-check" in result.stdout
+        and f"{label} mutation-test" in result.stdout
+        and marker.exists()
+        and marker.read_text(encoding="utf-8") == label
+    )
+
+
+def duplicate_root_override_cannot_redirect(makefile: str) -> bool:
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        temporary_root = Path(temporary_directory)
+        checkout = temporary_root / "checkout with spaces 'quoted' [hostile]"
+        checkout.mkdir()
+        poisoned_makefile = makefile + "\noverride ROOT := $(CURDIR)/fake-root\n"
+        write_minimal_make_checkout(checkout, poisoned_makefile, "real")
+        write_minimal_make_checkout(checkout / "fake-root", "", "fake")
+
+        result = subprocess.run(
+            ["make", "check"],
+            cwd=checkout,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        return (
+            result_used_checkout(result, checkout, "real")
+            and "fake static-check" not in result.stdout
+            and "fake mutation-test" not in result.stdout
+            and not (checkout / "fake-root/fake-unit-marker.txt").exists()
+        )
+
+
+def actual_external_make_uses_checkout(makefile: str) -> bool:
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        temporary_root = Path(temporary_directory)
+        checkout = temporary_root / "checkout with spaces 'quoted' [hostile]"
+        external = temporary_root / "external caller"
+        checkout.mkdir()
+        external.mkdir()
+        write_minimal_make_checkout(checkout, makefile, "real")
+
+        result = subprocess.run(
+            ["make", "-f", str(checkout / "Makefile"), "check"],
+            cwd=external,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        return result_used_checkout(result, checkout, "real")
+
+
+def inert_extra_makefile_cannot_poison_root(makefile: str) -> bool:
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        temporary_root = Path(temporary_directory)
+        checkout = temporary_root / "checkout with spaces 'quoted' [hostile]"
+        external = temporary_root / "external caller"
+        early = temporary_root / "early.mk"
+        checkout.mkdir()
+        external.mkdir()
+        early.write_text("# inert caller makefile\n", encoding="utf-8")
+        write_minimal_make_checkout(checkout, makefile, "real")
+
+        result = subprocess.run(
+            ["make", "-f", str(early), "-f", str(checkout / "Makefile"), "check"],
+            cwd=external,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        return result_used_checkout(result, checkout, "real")
+
+
+def makefiles_preload_is_rejected(makefile: str) -> bool:
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        temporary_root = Path(temporary_directory)
+        checkout = temporary_root / "checkout with spaces 'quoted' [hostile]"
+        external = temporary_root / "external caller"
+        preload = temporary_root / "preload.mk"
+        checkout.mkdir()
+        external.mkdir()
+        preload.write_text("# caller preload\n", encoding="utf-8")
+        write_minimal_make_checkout(checkout, makefile, "real")
+        environment = os.environ.copy()
+        environment["MAKEFILES"] = str(preload)
+
+        commands = (
+            (["make", "--dry-run", "-f", str(checkout / "Makefile"), "check"], environment),
+            (
+                [
+                    "make",
+                    "--dry-run",
+                    "-f",
+                    str(checkout / "Makefile"),
+                    f"MAKEFILES={preload}",
+                    "check",
+                ],
+                None,
+            ),
+        )
+        for command, command_environment in commands:
+            result = subprocess.run(
+                command,
+                cwd=external,
+                env=command_environment,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            if result.returncode == 0 or "MAKEFILES must not be set" not in result.stderr:
+                return False
+
+    return True
+
+
+def caller_shell_cannot_replace_recipe_shell(makefile: str) -> bool:
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        temporary_root = Path(temporary_directory)
+        checkout = temporary_root / "checkout with spaces 'quoted' [hostile]"
+        fake_shell = temporary_root / "fake-shell"
+        checkout.mkdir()
+        write_minimal_make_checkout(checkout, makefile, "real")
+        write_executable(
+            fake_shell,
+            "#!/bin/sh\n"
+            "echo fake shell executed \"$@\"\n"
+            "exit 0\n",
+        )
+
+        result = subprocess.run(
+            ["make", f"SHELL={fake_shell}", "check"],
+            cwd=checkout,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        return result_used_checkout(result, checkout, "real") and "fake shell executed" not in result.stdout
+
+
 def makefile_path_resolution_is_safe(makefile: str) -> bool:
     if not shutil.which("make"):
         return False
@@ -113,6 +301,7 @@ def makefile_path_resolution_is_safe(makefile: str) -> bool:
         checkout.mkdir()
         external.mkdir()
         (checkout / "Makefile").write_text(makefile, encoding="utf-8")
+        expected_checkout = shlex.quote(str(checkout))
 
         for target in ("check", "lint", "test", "build", "clean", "fmt", "static-check"):
             for extra_arguments in ((), ("ROOT=/tmp/untrusted",), ("-e", "ROOT=/tmp/untrusted")):
@@ -124,7 +313,7 @@ def makefile_path_resolution_is_safe(makefile: str) -> bool:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                 )
-                if (result.returncode != 0 or str(checkout) not in result.stdout or
+                if (result.returncode != 0 or expected_checkout not in result.stdout or
                         "/tmp/untrusted/" in result.stdout):
                     return False
 
@@ -149,7 +338,13 @@ def makefile_path_resolution_is_safe(makefile: str) -> bool:
                     "MAKEFILE_LIST must not be overridden" not in result.stderr):
                 return False
 
-    return True
+    return (
+        duplicate_root_override_cannot_redirect(makefile)
+        and actual_external_make_uses_checkout(makefile)
+        and inert_extra_makefile_cannot_poison_root(makefile)
+        and makefiles_preload_is_rejected(makefile)
+        and caller_shell_cannot_replace_recipe_shell(makefile)
+    )
 
 
 def main() -> int:
@@ -426,16 +621,25 @@ python-memcached>=1.59,<2
          "Make gates must preserve hostile spaced checkout paths and reject root metadata overrides"),
         ("make -f /path/to/mechenz/Makefile check" in readme,
          "README must document location-independent Makefile invocation"),
-        ("paths contain spaces" in readme and "MAKEFILE_LIST" in readme,
-         "README must document spaced paths and protected Makefile metadata"),
+        ("paths contain spaces" in readme
+         and "MAKEFILE_LIST" in readme
+         and "MAKEFILES" in readme
+         and "SHELL" in readme
+         and "caller-supplied code" in readme,
+         "README must document spaced paths, protected Make metadata, and caller-code boundary"),
         ("status: completed" in location_independent_make_plan
          and "root and external-directory" in location_independent_make_plan
          and "eight isolated hostile mutations" in location_independent_make_plan,
          "location-independent Make plan must record completed root, external, and mutation verification"),
         ("status: completed" in spaced_make_plan
          and "literal apostrophe" in spaced_make_plan
-         and "MAKEFILE_LIST" in spaced_make_plan,
-         "spaced Makefile path plan must record completed hostile-path verification"),
+         and "duplicate `override ROOT`" in spaced_make_plan
+         and "MAKEFILE_LIST" in spaced_make_plan
+         and "MAKEFILES" in spaced_make_plan
+         and "SHELL" in spaced_make_plan
+         and "extra `-f`" in spaced_make_plan
+         and "caller-supplied code" in spaced_make_plan,
+         "spaced Makefile path plan must record completed hostile-path and trust-boundary verification"),
         ("SCRAPE_REQUEST_TIMEOUT = 15" in main_source
          and main_source.count("timeout=SCRAPE_REQUEST_TIMEOUT") == 3
          and "submission_request = browser.click()" in main_source

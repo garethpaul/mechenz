@@ -1,7 +1,14 @@
+override SHELL := /bin/sh
+override .SHELLFLAGS := -c
+ifneq ($(strip $(MAKEFILES)),)
+$(error MAKEFILES must not be set)
+endif
+override MAKEFILES :=
 ifneq ($(origin MAKEFILE_LIST),file)
 $(error MAKEFILE_LIST must not be overridden)
 endif
-override ROOT := $(shell path='$(subst ','"'"',$(MAKEFILE_LIST))'; path=$$(printf '%s\n' "$$path" | sed 's/^ //'); dirname -- "$$path")
+override ROOT := $(shell MAKEFILE_LIST_RAW='$(subst ','"'"',$(MAKEFILE_LIST))' python3 -c "import os, shlex; path = os.environ['MAKEFILE_LIST_RAW']; marker = ' /'; path = '/' + path.rsplit(marker, 1)[1] if marker in path else path; print(shlex.quote(os.path.dirname(path) or '.'))")
+build check clean compile fmt lint mutation-test static-check test unit-test: override ROOT := $(ROOT)
 
 .PHONY: build check clean compile fmt lint mutation-test static-check test unit-test
 
@@ -12,22 +19,22 @@ lint: static-check
 test: unit-test mutation-test
 
 unit-test:
-	cd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
+	cd $(ROOT) && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
 
 mutation-test:
-	cd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-security-mutations.py
+	cd $(ROOT) && PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-security-mutations.py
 
 build: compile
 
 compile:
-	cd "$(ROOT)" && python3 -c "from pathlib import Path; [compile(path.read_text(), str(path), 'exec') for path in [Path('RoyalMail.py'), Path('main.py'), *Path('tests').glob('*.py')]]"
+	cd $(ROOT) && python3 -c "from pathlib import Path; [compile(path.read_text(), str(path), 'exec') for path in [Path('RoyalMail.py'), Path('main.py'), *Path('tests').glob('*.py')]]"
 
 static-check:
-	python3 "$(ROOT)/scripts/check-baseline.py"
+	python3 $(ROOT)/scripts/check-baseline.py
 
 clean:
-	find "$(ROOT)" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
-	find "$(ROOT)" -type d -name '__pycache__' -prune -exec rm -rf {} +
+	find $(ROOT) -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
+	find $(ROOT) -type d -name '__pycache__' -prune -exec rm -rf {} +
 
 fmt:
-	cd "$(ROOT)" && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
+	cd $(ROOT) && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
