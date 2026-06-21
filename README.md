@@ -76,7 +76,9 @@ python3 main.py
 - `make check` cleans generated Python artifacts, then runs lint, test, and build.
 - The Make gates are location-independent. From another directory, pass the
   checkout's Makefile by absolute path, such as
-  `make -f /path/to/mechenz/Makefile check`.
+  `make -f /path/to/mechenz/Makefile check`. This remains supported when
+  checkout paths contain spaces or a literal apostrophe. `ROOT` and
+  `MAKEFILE_LIST` overrides cannot redirect verification into another tree.
 - The tests do not require mechanize, memcache, SMTP credentials, Gmail, a target site, or a private `settings.py`.
 - SMTP STARTTLS certificate verification uses Python's default client TLS
   context so trusted certificate authorities and hostname checks apply before
