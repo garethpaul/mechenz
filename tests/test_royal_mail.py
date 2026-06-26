@@ -325,6 +325,32 @@ class RoyalMailTests(unittest.TestCase):
                 smtp_factory=FailingSMTP,
             )
 
+    def test_send_mail_ignores_close_failure_after_successful_delivery(self):
+        class CloseFailingSMTP(FakeSMTP):
+            def close(self):
+                self.calls.append(("close",))
+                raise OSError("close failed")
+
+        settings = RoyalMail.MailSettings(
+            login="sender@example.com",
+            password="secret",
+            host="smtp.example.com",
+            port=2525,
+            timeout=5,
+        )
+
+        RoyalMail.send_mail(
+            ["to@example.com"],
+            "Subject",
+            "Body",
+            mail_settings=settings,
+            smtp_factory=CloseFailingSMTP,
+        )
+
+        smtp = CloseFailingSMTP.instances[0]
+        self.assertTrue(any(call[0] == "sendmail" for call in smtp.calls))
+        self.assertIn(("close",), smtp.calls)
+
 
 if __name__ == "__main__":
     unittest.main()

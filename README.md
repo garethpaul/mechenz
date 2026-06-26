@@ -86,6 +86,8 @@ python3 main.py
 - SMTP STARTTLS certificate verification uses Python's default client TLS
   context so trusted certificate authorities and hostname checks apply before
   credentials are submitted.
+- SMTP delivery cleanup ignores expected transport close errors only after the
+  server accepts the message, preventing false failure and duplicate mail.
 - Action parsing keeps nested container depth balanced so an ordinary inner
   `div` cannot hide the first span that follows it, and rejects more than 256
   nested action containers.

@@ -49,9 +49,15 @@ MUTATIONS = (
     ),
     (
         "RoyalMail.py",
-        "        except BaseException:\n            pass\n        raise\n    else:\n        server.close()",
-        "        except BaseException:\n            raise\n        raise\n    else:\n        server.close()",
+        "        except BaseException:\n            pass\n        raise",
+        "        except BaseException:\n            raise\n        raise",
         "SMTP cleanup precedence",
+    ),
+    (
+        "RoyalMail.py",
+        "    else:\n        try:\n            server.close()\n        except (OSError, smtplib.SMTPException):\n            pass",
+        "    else:\n        server.close()",
+        "SMTP successful delivery cleanup",
     ),
 )
 

@@ -92,6 +92,7 @@ REQUIRED = [
     "docs/plans/2026-06-16-smtp-starttls-verification.md",
     "docs/plans/2026-06-17-memcache-socket-timeout.md",
     "docs/plans/2026-06-21-spaced-makefile-path.md",
+    "docs/plans/2026-06-26-smtp-delivery-cleanup.md",
     "tests/test_main.py",
     "tests/test_royal_mail.py",
     "tests/test_royalmail.py",
@@ -429,6 +430,9 @@ def main() -> int:
     ).read_text(encoding="utf-8")
     smtp_tls_plan = (
         ROOT / "docs/plans/2026-06-16-smtp-starttls-verification.md"
+    ).read_text(encoding="utf-8")
+    smtp_cleanup_plan = (
+        ROOT / "docs/plans/2026-06-26-smtp-delivery-cleanup.md"
     ).read_text(encoding="utf-8")
     memcache_timeout_plan = (
         ROOT / "docs/plans/2026-06-17-memcache-socket-timeout.md"
@@ -1004,6 +1008,25 @@ python-memcached>=1.59,<2
          ])
          and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", smtp_tls_verification),
          "SMTP STARTTLS verification plan must preserve completed verification evidence"),
+        ("except (OSError, smtplib.SMTPException):" in mail_source
+         and mail_source.find("refused = server.sendmail")
+             < mail_source.find("except (OSError, smtplib.SMTPException):"),
+         "RoyalMail must not turn post-delivery close failures into send failures"),
+        ("test_send_mail_ignores_close_failure_after_successful_delivery" in test_mail
+         and 'raise OSError("close failed")' in test_mail,
+         "tests must preserve successful-delivery cleanup behavior"),
+        ("smtp delivery cleanup" in readme.lower()
+         and "smtp delivery cleanup" in vision.lower()
+         and "smtp delivery cleanup" in security.lower()
+         and "smtp delivery cleanup" in changes.lower(),
+         "project guidance must document SMTP delivery cleanup"),
+        ("status: completed" in smtp_cleanup_plan.lower()
+         and "53 offline tests" in smtp_cleanup_plan
+         and "eight isolated hostile mutations" in smtp_cleanup_plan
+         and "make check" in smtp_cleanup_plan
+         and "external working directory" in smtp_cleanup_plan
+         and not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", smtp_cleanup_plan),
+         "SMTP delivery cleanup plan must record completed verification"),
     ]
     for passed, message in checks:
         if not passed:
