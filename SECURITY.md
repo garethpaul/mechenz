@@ -72,6 +72,8 @@ Helpful reports include:
   fall back to compatibility behavior.
 - Partial SMTP recipient refusals should fail delivery, and cleanup failures
   should not replace primary TLS, authentication, or delivery errors.
+- SMTP delivery cleanup should preserve real send failures without reporting an
+  accepted message as failed solely because the final connection close errored.
 - Robot setting validation should reject ambiguous `respect_robots` and `MECHENZ_IGNORE_ROBOTS` values without echoing raw configuration values.
 - Tests should use injected fakes and local fixtures rather than live scraping, memcache, or SMTP.
 

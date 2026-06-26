@@ -103,7 +103,10 @@ def send_mail(
             pass
         raise
     else:
-        server.close()
+        try:
+            server.close()
+        except (OSError, smtplib.SMTPException):
+            pass
 
 
 def sendMail(

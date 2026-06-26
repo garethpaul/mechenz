@@ -1,5 +1,22 @@
 # Changes
 
+## 2026-06-26 15:13 PDT - P1 - Preserve successful SMTP delivery
+
+- Summary: stopped final SMTP close failures from reclassifying an already
+  accepted message as failed and causing duplicate retry notifications.
+- Files: tightened `RoyalMail.py`, added a fake SMTP regression, expanded the
+  mutation suite, and documented the SMTP delivery cleanup contract.
+- Tests: the new success-path cleanup regression failed before implementation;
+  Python 3.11/3.12 passed all 53 offline tests, eight hostile mutations, root
+  and external `make check`, syntax compilation, strict Git validation,
+  generated-artifact checks, and secret/conflict scans.
+- Findings: primary-error cleanup was protected, but successful delivery used an
+  unguarded `close()` whose transport error escaped before cache update.
+- Blockers: Codex review may remain unavailable because prior attempts return
+  HTTP 401; skip after one attempt if unchanged.
+- Next action: open the focused PR, attempt Codex review once, and merge only an
+  exact hosted-green head.
+
 ## 2026-06-21
 
 - Corrected trusted-root discovery when an inert absolute `-f` input precedes

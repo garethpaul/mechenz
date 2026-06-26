@@ -40,6 +40,7 @@ Priority:
 - Keep SMTP header validation before opening outbound SMTP connections
 - Keep SMTP STARTTLS certificate verification on the exact context created by
   Python's secure client defaults before authentication
+- Keep SMTP delivery cleanup from turning accepted messages into retryable failures
 - Keep partial SMTP refusals visible and preserve primary SMTP errors during cleanup
 - Keep robot setting validation strict enough that typos fail closed
 - Keep the 15-second scrape request timeout on every mechanize network open

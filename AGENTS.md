@@ -45,6 +45,8 @@
 - Keep `settings.py`, SMTP credentials, target-site secrets, `.env` files, logs, and scraped private data out of git.
 - Use `settings.py.example` only as a placeholder template with fake values.
 - Preserve HTTP(S) navigation validation, redirect-origin checks, finite network timeouts, bounded response reads, memcache endpoint validation, and verified SMTP STARTTLS.
+- Preserve SMTP delivery cleanup semantics: primary send failures surface, but
+  close errors after an accepted message must not trigger duplicate retries.
 - Do not weaken the read-only, credential-free hosted checkout.
 
 ## Agent workflow
