@@ -1,5 +1,27 @@
 # Changes
 
+## 2026-07-18 - P2 - Pin the scrape bounds by value, not by spelling
+
+- Summary: the scrape request timeout and response body limit were pinned only
+  as source text, while every test sized its fixtures from the constants
+  themselves, so widening either bound passed the whole gate at exit 0.
+- Files: added two literal boundary regressions to `tests/test_main.py`, added
+  the matching widening mutations to `scripts/test-security-mutations.py`, and
+  pinned the new regressions and their literals in `scripts/check-baseline.py`.
+- Tests: both new regressions fail before the fix and pass after; `make check`
+  now runs 55 offline tests and rejects ten hostile mutations. Measured on the
+  base commit: widening `MAX_SCRAPE_RESPONSE_BYTES` to 1 GiB and
+  `SCRAPE_REQUEST_TIMEOUT` to 1500s both exited 0, while rewriting the same
+  values as `1048576` and `0xF` were rejected.
+- Findings: `MAX_MEMCACHE_TIMEOUT`, `DEFAULT_MEMCACHE_TIMEOUT`,
+  `MAX_ACTION_DIV_NESTING`, and the SMTP port/timeout maxima already probe at
+  the boundary with literals (`"301"`, `5.0`, `"<div>" * 300`, `"65536"`) and
+  correctly caught widening; only these two bounds lacked that coverage.
+- Blockers: `mechanize` and `python-memcached` are not installed in the audit
+  sandbox; the offline suite is standard-library only and passed regardless. No
+  live network, SMTP, or memcache validation was performed.
+- Next action: none; the mutation harness now proves both bounds gate.
+
 ## 2026-06-26 15:13 PDT - P1 - Preserve successful SMTP delivery
 
 - Summary: stopped final SMTP close failures from reclassifying an already

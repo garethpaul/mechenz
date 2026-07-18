@@ -667,6 +667,10 @@ python-memcached>=1.59,<2
          and 'self.assertEqual(browser.form, {"q": "value"})' in test_main
          and "self.assertTrue(browser.robots)" in test_main,
          "offline tests must verify bounded opens while preserving browser configuration"),
+        ("test_fetch_actions_applies_literal_fifteen_second_timeout" in test_main
+         and "[timeout for _, timeout in browser.opens], [15, 15, 15]" in test_main,
+         "offline tests must assert the effective scrape open timeout against literals, "
+         "so widening SCRAPE_REQUEST_TIMEOUT cannot pass by growing the fixtures with it"),
         ("browser.open(settings.site, timeout=SCRAPE_REQUEST_TIMEOUT)" in main_source
          and "submission_request = browser.click()" in main_source
          and "with _closing_response(" in main_source
@@ -789,6 +793,11 @@ python-memcached>=1.59,<2
          and "response.read_sizes" in test_main
          and "MAX_SCRAPE_RESPONSE_BYTES + 1" in test_main,
          "offline tests must cover response boundaries, short reads, and the total read budget"),
+        ("test_read_bounded_response_enforces_literal_one_mebibyte_boundary" in test_main
+         and 'b"x" * 1048576' in test_main
+         and 'b"x" * 1048577' in test_main,
+         "offline tests must probe the response body limit at the boundary with literals, "
+         "so widening MAX_SCRAPE_RESPONSE_BYTES cannot pass by growing the fixtures with it"),
         ("test_fetch_actions_closes_selected_response_when_read_fails" in test_main
          and "browser.submission_response.close_calls" in test_main
          and "browser.response.close_calls" in test_main

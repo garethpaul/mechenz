@@ -19,6 +19,18 @@ MUTATIONS = (
     ),
     (
         "main.py",
+        "SCRAPE_REQUEST_TIMEOUT = 15",
+        "SCRAPE_REQUEST_TIMEOUT = 1500",
+        "scrape request timeout bound",
+    ),
+    (
+        "main.py",
+        "MAX_SCRAPE_RESPONSE_BYTES = 1024 * 1024",
+        "MAX_SCRAPE_RESPONSE_BYTES = 1024 * 1024 * 1024",
+        "scrape response size bound",
+    ),
+    (
+        "main.py",
         "if self._action_depth >= MAX_ACTION_DIV_NESTING:",
         "if False:",
         "action nesting guard",

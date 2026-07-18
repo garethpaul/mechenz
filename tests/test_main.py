@@ -260,6 +260,14 @@ class MainTests(unittest.TestCase):
         self.assertEqual(browser.submission_response.close_calls, 1)
         self.assertEqual(browser.response.close_calls, 1)
 
+    def test_fetch_actions_applies_literal_fifteen_second_timeout(self):
+        browser = FakeBrowser()
+        settings = self.scrape_settings()
+
+        main.fetch_actions(settings, browser_factory=lambda: browser)
+
+        self.assertEqual([timeout for _, timeout in browser.opens], [15, 15, 15])
+
     def test_fetch_actions_closes_landing_response_when_form_selection_fails(self):
         browser = FakeBrowser()
 
@@ -386,6 +394,16 @@ class MainTests(unittest.TestCase):
             main._read_bounded_response(response)
 
         self.assertEqual(response.read_sizes, [main.MAX_SCRAPE_RESPONSE_BYTES + 1])
+
+    def test_read_bounded_response_enforces_literal_one_mebibyte_boundary(self):
+        accepted = FakeResponse(b"x" * 1048576)
+
+        self.assertEqual(len(main._read_bounded_response(accepted)), 1048576)
+
+        rejected = FakeResponse(b"x" * 1048577)
+
+        with self.assertRaisesRegex(ValueError, "configured size limit"):
+            main._read_bounded_response(rejected)
 
     def test_read_bounded_response_assembles_short_reads(self):
         response = FakeResponse(b"abcdef", max_chunk_size=2)
